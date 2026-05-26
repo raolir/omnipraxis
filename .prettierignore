@@ -1,0 +1,51 @@
+# Dependencies
+node_modules
+.pnpm-store
+
+# Build outputs
+dist
+build
+coverage
+.vite
+
+# Package manager lockfiles
+package-lock.json
+pnpm-lock.yaml
+yarn.lock
+
+# Logs
+*.log
+
+# Binary 3D / XR assets
+*.glb
+*.fbx
+*.stl
+*.usdz
+
+# Gaussian splats / point clouds
+*.splat
+*.spz
+*.ply
+
+# Media
+*.hdr
+*.exr
+
+*.png
+*.jpg
+*.jpeg
+*.webp
+*.gif
+
+*.mp3
+*.wav
+*.ogg
+
+*.mp4
+*.webm
+
+# Fonts
+*.woff
+*.woff2
+*.ttf
+*.eot

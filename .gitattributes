@@ -1,0 +1,108 @@
+# =========================================================
+# Line endings
+# =========================================================
+
+# Enforce LF line endings across all platforms
+* text=auto eol=lf
+
+# =========================================================
+# Source code / text formats
+# =========================================================
+
+*.ts text eol=lf
+*.tsx text eol=lf
+*.js text eol=lf
+*.jsx text eol=lf
+*.mjs text eol=lf
+*.cjs text eol=lf
+
+*.json text eol=lf
+*.jsonc text eol=lf
+
+*.css text eol=lf
+*.scss text eol=lf
+
+*.html text eol=lf
+*.md text eol=lf
+
+*.yaml text eol=lf
+*.yml text eol=lf
+
+*.svg text eol=lf
+
+# Shell scripts (Crucial for WSL2 to prevent CRLF execution errors)
+*.sh text eol=lf
+*.bash text eol=lf
+*.zsh text eol=lf
+
+# =========================================================
+# Text-based 3D formats
+# =========================================================
+
+*.gltf text eol=lf
+*.obj text eol=lf
+*.mtl text eol=lf
+
+# =========================================================
+# Shaders (Three.js / WebGL / R3F)
+# =========================================================
+
+*.glsl text eol=lf
+*.vert text eol=lf
+*.frag text eol=lf
+*.vs text eol=lf
+*.fs text eol=lf
+*.wgsl text eol=lf
+
+# =========================================================
+# Binary 3D / XR assets
+# =========================================================
+
+*.glb binary
+*.fbx binary
+*.stl binary
+*.usdz binary
+
+# Gaussian splats / point clouds
+*.splat binary
+*.spz binary
+*.ply binary
+
+# =========================================================
+# Textures / HDRI / images
+# =========================================================
+
+*.hdr binary
+*.exr binary
+
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.webp binary
+*.gif binary
+
+# =========================================================
+# Audio / video
+# =========================================================
+
+*.mp3 binary
+*.wav binary
+*.ogg binary
+
+*.mp4 binary
+*.webm binary
+
+# =========================================================
+# Fonts
+# =========================================================
+
+*.woff binary
+*.woff2 binary
+*.ttf binary
+*.eot binary
+
+# =========================================================
+# Package manager lockfiles
+# =========================================================
+
+pnpm-lock.yaml linguist-generated

@@ -1,8 +1,10 @@
 import { Canvas } from '@react-three/fiber';
-import { Physics, RigidBody, CuboidCollider } from '@react-three/rapier';
+import { Physics, RigidBody } from '@react-three/rapier';
+import { Suspense } from 'react';
 
 import { InputRuntime } from './runtime/input/InputRuntime';
 import { PlayerController } from './runtime/player/PlayerController';
+import { World } from './runtime/world/World';
 
 const Scene = () => (
   <>
@@ -11,7 +13,7 @@ const Scene = () => (
     <ambientLight intensity={0.5} />
     <directionalLight position={[-10, 10, 5]} />
 
-    <CuboidCollider position={[0, -2, 0]} args={[20, 0.5, 20]} />
+    <World />
 
     <RigidBody colliders={'hull'}>
       <mesh>
@@ -24,12 +26,14 @@ const Scene = () => (
 
 const App = () => (
   <Canvas gl={{ antialias: false }}>
-    <InputRuntime />
-    <PlayerController />
+    <Suspense fallback={null}>
+      <InputRuntime />
+      <PlayerController />
 
-    <Physics debug>
-      <Scene />
-    </Physics>
+      <Physics debug>
+        <Scene />
+      </Physics>
+    </Suspense>
   </Canvas>
 );
 

@@ -1,0 +1,43 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+
+  "permission": {
+    "*": "ask",
+
+    "question": "allow",
+    "todowrite": "allow",
+
+    "read": "allow",
+    "grep": "allow",
+    "glob": "allow",
+    "list": "allow",
+
+    "websearch": "allow",
+    "webfetch": "ask",
+
+    "edit": "ask",
+    "write": "ask",
+    "patch": "ask",
+
+    "bash": {
+      "*": "ask",
+
+      "pnpm lint": "allow",
+      "pnpm format": "allow",
+      "pnpm build": "allow",
+
+      "git status*": "allow",
+      "git diff*": "allow",
+      "git log*": "allow",
+
+      "git commit*": "ask",
+      "git push*": "deny",
+      "git reset*": "deny",
+      "rm -rf*": "deny",
+
+      "npm install*": "deny",
+      "pnpm add*": "deny",
+      "yarn add*": "deny"
+    }
+  }
+}

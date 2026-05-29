@@ -25,7 +25,7 @@ A platform for building immersive, intelligent, and interactive professional tra
 
 **AI**
 
-- ConvAI Web SDK (@convai/web-sdk) — Conversational AI integration.
+- Convai (@convai/web-sdk) — Conversational AI integration.
 
 **Development Tools**
 
@@ -71,6 +71,14 @@ Create a production build:
 pnpm build
 ```
 
+## Preview
+
+Preview the production build locally:
+
+```bash
+pnpm preview
+```
+
 ## Lint
 
 Run ESLint:
@@ -85,12 +93,4 @@ Format the codebase with Prettier:
 
 ```bash
 pnpm format
-```
-
-## Preview
-
-Preview the production build locally:
-
-```bash
-pnpm preview
 ```

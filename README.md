@@ -21,7 +21,7 @@ A platform for building immersive, intelligent, and interactive professional tra
 
 **Physics**
 
-- Rapier Physics (@react-three/rapier) — Physics engine for collision and simulation.
+- Rapier (@react-three/rapier) — Physics engine for collision and simulation.
 
 **AI**
 

@@ -1,7 +1,7 @@
 import type { InputDevice } from '../InputDevice';
 import type { InputStore } from '../InputStore';
 
-const MOUSE_SENSITIVITY = 0.002;
+const MOUSE_SENSITIVITY = 0.001;
 
 export class MouseInputDevice implements InputDevice {
   private store!: InputStore;

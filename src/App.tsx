@@ -1,5 +1,5 @@
 import { Canvas } from '@react-three/fiber';
-import { Physics, RigidBody } from '@react-three/rapier';
+import { Physics } from '@react-three/rapier';
 import { Suspense } from 'react';
 
 import { InputRuntime } from './runtime/input/InputRuntime';
@@ -14,13 +14,6 @@ const Scene = () => (
     <directionalLight position={[-10, 10, 5]} />
 
     <World />
-
-    <RigidBody colliders={'hull'}>
-      <mesh>
-        <boxGeometry />
-        <meshStandardMaterial color="pink" />
-      </mesh>
-    </RigidBody>
   </>
 );
 
@@ -28,9 +21,9 @@ const App = () => (
   <Canvas gl={{ antialias: false }}>
     <Suspense fallback={null}>
       <InputRuntime />
-      <PlayerController />
 
       <Physics debug>
+        <PlayerController />
         <Scene />
       </Physics>
     </Suspense>

@@ -22,6 +22,8 @@
     "bash": {
       "*": "ask",
 
+      "ls": "allow",
+
       "pnpm lint": "allow",
       "pnpm format": "allow",
       "pnpm build": "allow",

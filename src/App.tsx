@@ -3,28 +3,20 @@ import { Physics } from '@react-three/rapier';
 import { Suspense } from 'react';
 
 import { InputRuntime } from './runtime/input/InputRuntime';
-import { PlayerController } from './runtime/player/PlayerController';
-import { World } from './runtime/world/World';
-
-const Scene = () => (
-  <>
-    <color attach="background" args={['#202025']} />
-
-    <ambientLight intensity={0.5} />
-    <directionalLight position={[-10, 10, 5]} />
-
-    <World />
-  </>
-);
+import { PlayerRuntime } from './runtime/player/PlayerRuntime';
+import { SparkRuntime } from './runtime/spark/SparkRuntime';
+import { CircuitBreakerScene } from './scenes/CircuitBreakerScene';
 
 const App = () => (
   <Canvas gl={{ antialias: false }}>
-    <Suspense fallback={null}>
-      <InputRuntime />
+    <SparkRuntime />
+    <InputRuntime />
 
-      <Physics debug>
-        <PlayerController />
-        <Scene />
+    <Suspense fallback={null}>
+      <Physics>
+        <PlayerRuntime>
+          <CircuitBreakerScene />
+        </PlayerRuntime>
       </Physics>
     </Suspense>
   </Canvas>

@@ -35,14 +35,16 @@
 *.fs text eol=lf
 *.wgsl text eol=lf
 # Binary 3D / XR assets
-*.glb binary
+*.glb filter=lfs diff=lfs merge=lfs -text
 *.fbx binary
 *.stl binary
 *.usdz binary
 # Gaussian splats / point clouds
-*.splat binary
-*.spz binary
-*.ply binary
+*.splat filter=lfs diff=lfs merge=lfs -text
+*.spz filter=lfs diff=lfs merge=lfs -text
+*.ply filter=lfs diff=lfs merge=lfs -text
+*.rad filter=lfs diff=lfs merge=lfs -text
+*.radc filter=lfs diff=lfs merge=lfs -text
 # Textures / HDRI / images
 *.hdr binary
 *.exr binary
@@ -64,7 +66,3 @@
 *.eot binary
 # Package manager lockfiles
 pnpm-lock.yaml linguist-generated
-*.glb filter=lfs diff=lfs merge=lfs -text
-*.spz filter=lfs diff=lfs merge=lfs -text
-*.rad filter=lfs diff=lfs merge=lfs -text
-*.radc filter=lfs diff=lfs merge=lfs -text

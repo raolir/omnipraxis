@@ -13,14 +13,18 @@
 ## Project Shape
 
 - This is a single Vite app, not a package monorepo; `pnpm-workspace.yaml` only allowlists the `unrs-resolver` install build script.
-- Runtime entry flow is `src/main.tsx` -> `src/App.tsx`; `App` mounts an R3F `Canvas`, `SparkRuntime`, `InputRuntime`, and Rapier `Physics` containing `PlayerRuntime` plus the active scene.
-- Scene content lives under `src/scenes/`; `CircuitBreakerScene` owns its background/lights, splat URLs, GLB collider URL, and player spawn call.
-- Circuit breaker assets live under `public/scenes/circuit-breaker/`; build URLs must use `import.meta.env.BASE_URL` because Vite `base` is `/omnipraxis/`.
+- Runtime entry flow is `src/main.tsx` -> `src/App.tsx`; `App` should stay lean: R3F `Canvas`, `SparkRuntime`, `InputRuntime`, and Rapier `Physics` containing `PlayerRuntime` plus the active scene.
+- Scene content lives under `src/scenes/`; `CircuitBreakerScene` owns its background/lights, scene asset URLs, repair state, effect configs, and player spawn call.
+- Circuit breaker splat/collider assets live under `public/scenes/circuit-breaker/`; GLB props live under `public/assets/`. Build URLs must use `import.meta.env.BASE_URL` because Vite `base` is `/omnipraxis/`.
 - Circuit breaker splats are a paged Spark LoD asset (`splats-lod.rad` plus `.radc` pages); do not replace them with direct `.spz` imports unless the scene/runtime design changes.
 - Large scene assets must stay in Git LFS; `.gitattributes` tracks `*.glb`, `*.splat`, `*.spz`, `*.ply`, `*.rad`, and `*.radc` as LFS objects.
+- Scenes should use `src/runtime/assets/GltfModel.tsx` for GLB loading/cloning, physics, and interaction proxies instead of calling `useGLTF` directly.
 - Spark internals (`@sparkjsdev/spark`, `SplatMesh`) are isolated under `src/runtime/spark/`; scenes should use `SplatModel` instead of importing Spark directly.
 - `SplatModel` reports initialized after its mounted `SplatMesh.initialized` promise resolves.
-- Player code lives under `src/runtime/player/`; scenes call `usePlayer().spawn(position, yaw?, pitch?)` and `PlayerRuntime` keeps the single `PlayerController` disabled until spawn is applied.
+- Player code lives under `src/runtime/player/`; scenes call `usePlayer().spawn(position, yaw?, pitch?)`, and `PlayerRuntime` keeps the single `PlayerController` disabled until spawn is applied.
+- `PlayerRuntime` owns centered interaction targeting, `KeyE` callbacks, held items, reticle, and screen tint feedback; do not move player UI back into `App.tsx`.
+- DOM UI inside the R3F tree must not return raw `<div>` elements; the player overlay creates a separate React DOM root and returns `null` to R3F to avoid `Div is not part of the THREE namespace` errors.
+- Carried items are attached under the player's yaw node via `setHeldItem`; pass local zero transforms for held models unless intentionally offsetting them.
 - Input code lives under `src/runtime/input/`; devices mutate the singleton `inputStore`, and frame deltas are reset from `PlayerController`.
 
 ## TypeScript / Style

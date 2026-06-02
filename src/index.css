@@ -5,3 +5,29 @@ body,
   height: 100%;
   margin: 0;
 }
+
+.player-screen-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+}
+
+.player-screen-tint {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.interaction-reticle {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 6px;
+  height: 6px;
+  border: 1px solid rgb(255 255 255 / 0.85);
+  border-radius: 999px;
+  box-shadow: 0 0 6px rgb(0 0 0 / 0.6);
+  pointer-events: none;
+  transform: translate(-50%, -50%);
+}

@@ -7,6 +7,7 @@ import * as THREE from 'three';
 import { inputStore } from '../input/InputStore';
 
 import type { RapierCollider, RapierRigidBody } from '@react-three/rapier';
+import type { ReactNode } from 'react';
 
 const DEFAULT_MOVE_SPEED = 4;
 const DEFAULT_EYE_HEIGHT = 1.7;
@@ -17,6 +18,8 @@ const GRAVITY = -9.81;
 const MIN_PITCH = -Math.PI / 2 + 0.01;
 const MAX_PITCH = Math.PI / 2 - 0.01;
 const CAPSULE_HALF_HEIGHT = (PLAYER_HEIGHT - PLAYER_RADIUS * 2) / 2;
+const CARRIED_ITEM_POSITION: [number, number, number] = [0.2, -0.1, -0.3];
+const CARRIED_ITEM_ROTATION: [number, number, number] = [0, 0, 0];
 
 type PlayerControllerProps = {
   enabled?: boolean;
@@ -24,6 +27,7 @@ type PlayerControllerProps = {
   eyeHeight?: number;
   spawnRequest?: PlayerSpawnRequest | null;
   onSpawnApplied?: () => void;
+  heldItem?: ReactNode;
 };
 
 type PlayerSpawnRequest = {
@@ -38,6 +42,7 @@ export const PlayerController = ({
   eyeHeight = DEFAULT_EYE_HEIGHT,
   spawnRequest = null,
   onSpawnApplied,
+  heldItem,
 }: PlayerControllerProps) => {
   const { world } = useRapier();
 
@@ -147,11 +152,11 @@ export const PlayerController = ({
 
     horizontalMovement.applyQuaternion(yawNode.quaternion).multiplyScalar(moveSpeed * delta);
 
-    if (groundedRef.current && verticalVelocityRef.current < 0) {
+    if (groundedRef.current) {
       verticalVelocityRef.current = 0;
+    } else {
+      verticalVelocityRef.current += GRAVITY * delta;
     }
-
-    verticalVelocityRef.current += GRAVITY * delta;
 
     const desiredMovement = desiredMovementRef.current;
 
@@ -192,6 +197,11 @@ export const PlayerController = ({
         position={[0, PLAYER_HEIGHT / 2, 0]}
       />
       <group ref={yawNodeRef} position={[0, eyeHeight, 0]}>
+        {heldItem ? (
+          <group position={CARRIED_ITEM_POSITION} rotation={CARRIED_ITEM_ROTATION}>
+            {heldItem}
+          </group>
+        ) : null}
         <group ref={pitchNodeRef}>
           <PerspectiveCamera makeDefault />
         </group>

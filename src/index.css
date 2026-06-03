@@ -19,6 +19,17 @@ body,
   pointer-events: none;
 }
 
+.convai-widget-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+}
+
+.convai-widget-shell {
+  pointer-events: auto;
+}
+
 .interaction-reticle {
   position: absolute;
   top: 50%;

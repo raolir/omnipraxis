@@ -6,6 +6,7 @@ import { ConvaiRuntime } from './runtime/convai/ConvaiRuntime';
 import { InputRuntime } from './runtime/input/InputRuntime';
 import { PlayerRuntime } from './runtime/player/PlayerRuntime';
 import { SparkRuntime } from './runtime/spark/SparkRuntime';
+import { UIRuntime } from './runtime/ui/UIRuntime';
 import { CircuitBreakerScene } from './scenes/CircuitBreakerScene';
 
 const PHYSICS_TIME_STEP = 0.01;
@@ -16,13 +17,15 @@ const App = () => (
     <InputRuntime />
     <ConvaiRuntime />
 
-    <Suspense fallback={null}>
-      <Physics timeStep={PHYSICS_TIME_STEP}>
-        <PlayerRuntime physicsTimeStep={PHYSICS_TIME_STEP}>
-          <CircuitBreakerScene />
-        </PlayerRuntime>
-      </Physics>
-    </Suspense>
+    <UIRuntime>
+      <Suspense fallback={null}>
+        <Physics timeStep={PHYSICS_TIME_STEP}>
+          <PlayerRuntime physicsTimeStep={PHYSICS_TIME_STEP}>
+            <CircuitBreakerScene />
+          </PlayerRuntime>
+        </Physics>
+      </Suspense>
+    </UIRuntime>
   </Canvas>
 );
 

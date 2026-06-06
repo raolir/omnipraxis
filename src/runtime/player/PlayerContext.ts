@@ -11,7 +11,6 @@ export type PlayerRuntimeContextValue = {
   clearInteractionTarget: (id: string) => void;
   clearCurrentInteractionTarget: () => void;
   setHeldItem: (heldItem: ReactNode | null) => void;
-  setScreenTint: (color: string, duration: number) => void;
 };
 
 export const PlayerRuntimeContext = createContext<PlayerRuntimeContextValue | null>(null);

@@ -6,17 +6,33 @@ body,
   margin: 0;
 }
 
-.player-screen-overlay {
+.ui-screen-overlay {
   position: fixed;
   inset: 0;
   z-index: 1;
   pointer-events: none;
 }
 
-.player-screen-tint {
+.ui-screen-tint {
   position: absolute;
   inset: 0;
   pointer-events: none;
+}
+
+.ui-screen-message {
+  position: absolute;
+  top: 16%;
+  left: 50%;
+  padding: 0.65rem 1.25rem;
+  border-radius: 999px;
+  background: rgb(0 0 0 / 0.45);
+  font:
+    700 clamp(2rem, 5vw, 4rem) / 1 system-ui,
+    sans-serif;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  text-shadow: 0 1px 8px rgb(0 0 0 / 0.85);
+  transform: translateX(-50%);
 }
 
 .convai-widget-overlay {

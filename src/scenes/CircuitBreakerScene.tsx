@@ -5,6 +5,7 @@ import { usePlayer } from '../runtime/player/PlayerContext';
 import { ParticleEmitter } from '../runtime/spark/ParticleEmitter';
 import { SplatEdit } from '../runtime/spark/SplatEdit';
 import { SplatModel } from '../runtime/spark/SplatModel';
+import { useUI } from '../runtime/ui/UIContext';
 
 const SCENE_SPLATS_URL = `${import.meta.env.BASE_URL}scenes/circuit-breaker/splats-lod.rad`;
 const SCENE_COLLIDERS_URL = `${import.meta.env.BASE_URL}scenes/circuit-breaker/colliders.glb`;
@@ -45,14 +46,16 @@ const burntBreakerFlameProps = {
 } as const;
 
 export const CircuitBreakerScene = () => {
-  const { spawn, setHeldItem, setScreenTint } = usePlayer();
+  const { spawn, setHeldItem } = usePlayer();
+  const { showScreenFeedback } = useUI();
   const [repairStatus, setRepairStatus] = useState('start');
   // Repair Status: start -> overloaded -> removed -> collected -> complete
 
   const powerOutage =
     repairStatus === 'overloaded' || repairStatus === 'removed' || repairStatus === 'collected';
 
-  const showWrongInteractionFeedback = () => setScreenTint('rgb(255 0 0 / 0.45)', 0.25);
+  const showWrongInteractionFeedback = () =>
+    showScreenFeedback('rgb(255 0 0 / 0.45)', 'Wrong interaction', 'rgb(255 90 90)', 0.25);
 
   useEffect(() => {
     if (repairStatus !== 'collected') {
@@ -98,6 +101,12 @@ export const CircuitBreakerScene = () => {
               setRepairStatus('overloaded');
               break;
             case 'complete':
+              showScreenFeedback(
+                'rgb(0 180 80 / 0.35)',
+                'training complete',
+                'rgb(80 255 150)',
+                1.5,
+              );
               setRepairStatus('start');
               break;
             default:
@@ -118,6 +127,12 @@ export const CircuitBreakerScene = () => {
               setRepairStatus('overloaded');
               break;
             case 'complete':
+              showScreenFeedback(
+                'rgb(0 180 80 / 0.35)',
+                'training complete',
+                'rgb(80 255 150)',
+                1.5,
+              );
               setRepairStatus('start');
               break;
             default:

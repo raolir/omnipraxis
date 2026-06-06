@@ -12,7 +12,7 @@ import { CircuitBreakerScene } from './scenes/CircuitBreakerScene';
 const PHYSICS_TIME_STEP = 0.01;
 
 const App = () => (
-  <Canvas gl={{ antialias: false }}>
+  <Canvas gl={{ alpha: false, antialias: false }}>
     <SparkRuntime />
     <InputRuntime />
     <ConvaiRuntime />

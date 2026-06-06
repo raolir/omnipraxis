@@ -19,6 +19,7 @@ type PlayerSpawnRequest = {
 
 type PlayerRuntimeProps = {
   children?: ReactNode;
+  physicsTimeStep: number;
 };
 
 type PlayerScreenOverlayProps = {
@@ -66,7 +67,7 @@ const PlayerScreenOverlay = ({ screenTintColor }: PlayerScreenOverlayProps) => {
   return null;
 };
 
-export const PlayerRuntime = ({ children }: PlayerRuntimeProps) => {
+export const PlayerRuntime = ({ children, physicsTimeStep }: PlayerRuntimeProps) => {
   const events = useThree((state) => state.events);
   const get = useThree((state) => state.get);
   const setEvents = useThree((state) => state.setEvents);
@@ -143,6 +144,11 @@ export const PlayerRuntime = ({ children }: PlayerRuntimeProps) => {
     });
   }, []);
 
+  const clearCurrentInteractionTarget = useCallback(() => {
+    interactionCallbackRef.current = null;
+    setInteractionTargetId(null);
+  }, []);
+
   const setScreenTint = useCallback((color: string, duration: number) => {
     if (duration <= 0) {
       screenTintRemainingRef.current = 0;
@@ -161,10 +167,18 @@ export const PlayerRuntime = ({ children }: PlayerRuntimeProps) => {
       interactionTargetId,
       setInteractionTarget,
       clearInteractionTarget,
+      clearCurrentInteractionTarget,
       setHeldItem,
       setScreenTint,
     }),
-    [clearInteractionTarget, interactionTargetId, setInteractionTarget, setScreenTint, spawn],
+    [
+      clearCurrentInteractionTarget,
+      clearInteractionTarget,
+      interactionTargetId,
+      setInteractionTarget,
+      setScreenTint,
+      spawn,
+    ],
   );
 
   return (
@@ -174,6 +188,7 @@ export const PlayerRuntime = ({ children }: PlayerRuntimeProps) => {
         spawnRequest={spawnRequest}
         onSpawnApplied={handleSpawnApplied}
         heldItem={heldItem}
+        physicsTimeStep={physicsTimeStep}
       />
       {children}
       <PlayerScreenOverlay screenTintColor={screenTintColor} />

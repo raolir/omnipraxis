@@ -1,6 +1,6 @@
 import { PerspectiveCamera } from '@react-three/drei';
 import { useFrame } from '@react-three/fiber';
-import { CapsuleCollider, RigidBody, useRapier } from '@react-three/rapier';
+import { CapsuleCollider, RigidBody, useBeforePhysicsStep, useRapier } from '@react-three/rapier';
 import { useEffect, useRef } from 'react';
 import * as THREE from 'three';
 
@@ -28,6 +28,7 @@ type PlayerControllerProps = {
   spawnRequest?: PlayerSpawnRequest | null;
   onSpawnApplied?: () => void;
   heldItem?: ReactNode;
+  physicsTimeStep: number;
 };
 
 type PlayerSpawnRequest = {
@@ -43,6 +44,7 @@ export const PlayerController = ({
   spawnRequest = null,
   onSpawnApplied,
   heldItem,
+  physicsTimeStep,
 }: PlayerControllerProps) => {
   const { world } = useRapier();
 
@@ -115,10 +117,8 @@ export const PlayerController = ({
     };
   }, [world]);
 
-  useFrame((_, delta) => {
+  useBeforePhysicsStep(() => {
     if (!enabled) {
-      inputStore.resetFrameDeltas();
-
       return;
     }
 
@@ -132,16 +132,6 @@ export const PlayerController = ({
       return;
     }
 
-    yawRef.current += inputStore.deltaYaw;
-    pitchRef.current = THREE.MathUtils.clamp(
-      pitchRef.current + inputStore.deltaPitch,
-      MIN_PITCH,
-      MAX_PITCH,
-    );
-
-    yawNode.rotation.y = yawRef.current;
-    pitchNode.rotation.x = pitchRef.current;
-
     const horizontalMovement = horizontalMovementRef.current;
 
     horizontalMovement.set(inputStore.moveX, 0, inputStore.moveZ);
@@ -150,19 +140,21 @@ export const PlayerController = ({
       horizontalMovement.normalize();
     }
 
-    horizontalMovement.applyQuaternion(yawNode.quaternion).multiplyScalar(moveSpeed * delta);
+    horizontalMovement
+      .applyQuaternion(yawNode.quaternion)
+      .multiplyScalar(moveSpeed * physicsTimeStep);
 
     if (groundedRef.current) {
       verticalVelocityRef.current = 0;
     } else {
-      verticalVelocityRef.current += GRAVITY * delta;
+      verticalVelocityRef.current += GRAVITY * physicsTimeStep;
     }
 
     const desiredMovement = desiredMovementRef.current;
 
     desiredMovement.set(
       horizontalMovement.x,
-      verticalVelocityRef.current * delta,
+      verticalVelocityRef.current * physicsTimeStep,
       horizontalMovement.z,
     );
 
@@ -185,6 +177,31 @@ export const PlayerController = ({
     if (groundedRef.current && verticalVelocityRef.current < 0) {
       verticalVelocityRef.current = 0;
     }
+  });
+
+  useFrame(() => {
+    if (!enabled) {
+      inputStore.resetFrameDeltas();
+
+      return;
+    }
+
+    const yawNode = yawNodeRef.current;
+    const pitchNode = pitchNodeRef.current;
+
+    if (!yawNode || !pitchNode) {
+      return;
+    }
+
+    yawRef.current += inputStore.deltaYaw;
+    pitchRef.current = THREE.MathUtils.clamp(
+      pitchRef.current + inputStore.deltaPitch,
+      MIN_PITCH,
+      MAX_PITCH,
+    );
+
+    yawNode.rotation.y = yawRef.current;
+    pitchNode.rotation.x = pitchRef.current;
 
     inputStore.resetFrameDeltas();
   }, -1);

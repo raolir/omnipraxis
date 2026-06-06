@@ -3,6 +3,7 @@ import { SplatMesh as SplatMeshImpl } from '@sparkjsdev/spark';
 import { useEffect, useMemo, useRef } from 'react';
 
 import type { SplatMeshOptions } from '@sparkjsdev/spark';
+import type { ReactNode } from 'react';
 
 const SplatMesh = extend(SplatMeshImpl);
 
@@ -10,9 +11,10 @@ type SplatModelProps = {
   url: string;
   paged?: boolean;
   onInitialized?: () => void;
+  children?: ReactNode;
 };
 
-export const SplatModel = ({ url, paged = false, onInitialized }: SplatModelProps) => {
+export const SplatModel = ({ children, url, paged = false, onInitialized }: SplatModelProps) => {
   const splatMeshRef = useRef<SplatMeshImpl | null>(null);
   const initializedRef = useRef(false);
 
@@ -43,5 +45,9 @@ export const SplatModel = ({ url, paged = false, onInitialized }: SplatModelProp
     };
   }, [onInitialized, splatMeshArgs]);
 
-  return <SplatMesh ref={splatMeshRef} args={splatMeshArgs} />;
+  return (
+    <SplatMesh ref={splatMeshRef} args={splatMeshArgs}>
+      {children}
+    </SplatMesh>
+  );
 };

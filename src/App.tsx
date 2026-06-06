@@ -8,6 +8,8 @@ import { PlayerRuntime } from './runtime/player/PlayerRuntime';
 import { SparkRuntime } from './runtime/spark/SparkRuntime';
 import { CircuitBreakerScene } from './scenes/CircuitBreakerScene';
 
+const PHYSICS_TIME_STEP = 0.01;
+
 const App = () => (
   <Canvas gl={{ antialias: false }}>
     <SparkRuntime />
@@ -15,8 +17,8 @@ const App = () => (
     <ConvaiRuntime />
 
     <Suspense fallback={null}>
-      <Physics>
-        <PlayerRuntime>
+      <Physics timeStep={PHYSICS_TIME_STEP}>
+        <PlayerRuntime physicsTimeStep={PHYSICS_TIME_STEP}>
           <CircuitBreakerScene />
         </PlayerRuntime>
       </Physics>

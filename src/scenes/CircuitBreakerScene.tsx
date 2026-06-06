@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import { GltfModel } from '../runtime/assets/GltfModel';
 import { usePlayer } from '../runtime/player/PlayerContext';
 import { ParticleEmitter } from '../runtime/spark/ParticleEmitter';
+import { SplatEdit } from '../runtime/spark/SplatEdit';
 import { SplatModel } from '../runtime/spark/SplatModel';
 
 const SCENE_SPLATS_URL = `${import.meta.env.BASE_URL}scenes/circuit-breaker/splats-lod.rad`;
@@ -10,6 +11,8 @@ const SCENE_COLLIDERS_URL = `${import.meta.env.BASE_URL}scenes/circuit-breaker/c
 const ELECTRIC_BOX_URL = `${import.meta.env.BASE_URL}assets/electric-box.glb`;
 const CIRCUIT_BREAKER_URL = `${import.meta.env.BASE_URL}assets/circuit-breaker.glb`;
 const CIRCUIT_BREAKER_SET_URL = `${import.meta.env.BASE_URL}assets/circuit-breaker-set.glb`;
+
+const BOX_URL = `${import.meta.env.BASE_URL}assets/box.glb`;
 
 const PLAYER_SPAWN_POSITION = [0, 0, 0] as const;
 
@@ -44,9 +47,12 @@ const burntBreakerFlameProps = {
 export const CircuitBreakerScene = () => {
   const { spawn, setHeldItem, setScreenTint } = usePlayer();
   const [repairStatus, setRepairStatus] = useState('start');
-  // Repair Status: start -> removed -> collected -> complete
+  // Repair Status: start -> overloaded -> removed -> collected -> complete
 
-  const showWrongBreakerFeedback = () => setScreenTint('rgb(255 0 0 / 0.45)', 0.25);
+  const powerOutage =
+    repairStatus === 'overloaded' || repairStatus === 'removed' || repairStatus === 'collected';
+
+  const showWrongInteractionFeedback = () => setScreenTint('rgb(255 0 0 / 0.45)', 0.25);
 
   useEffect(() => {
     if (repairStatus !== 'collected') {
@@ -71,89 +77,123 @@ export const CircuitBreakerScene = () => {
 
   return (
     <group>
-      <color attach="background" args={['#202025']} />
-
-      <ambientLight intensity={0.4} />
-      <directionalLight position={[10, 10, -5]} />
-
-      <SplatModel url={SCENE_SPLATS_URL} paged onInitialized={() => spawn(PLAYER_SPAWN_POSITION)} />
+      <color attach="background" args={['#000000']} />
+      <ambientLight intensity={0.1} />
+      {powerOutage ? null : <directionalLight position={[10, 10, -5]} />}
+      <SplatModel url={SCENE_SPLATS_URL} paged onInitialized={() => spawn(PLAYER_SPAWN_POSITION)}>
+        {powerOutage ? <SplatEdit type="all" color={[0.1, 0.1, 0.1]} /> : null}
+      </SplatModel>
       <GltfModel url={SCENE_COLLIDERS_URL} visible={false} physicality="fixed" />
-
-      <ParticleEmitter {...burntBreakerSmokeProps} emitting={repairStatus === 'start'} />
-
-      {repairStatus === 'start' ? <ParticleEmitter {...burntBreakerFlameProps} /> : null}
-
+      <ParticleEmitter {...burntBreakerSmokeProps} emitting={repairStatus === 'overloaded'} />
+      {repairStatus === 'overloaded' ? <ParticleEmitter {...burntBreakerFlameProps} /> : null}
+      <GltfModel
+        url={BOX_URL}
+        position={[-3.5, 1.87, -0.55]}
+        rotation={[0.0, 0.2, 0.0]}
+        scale={[0.4, 1.15, 0.75]}
+        opacity={0}
+        interaction={() => {
+          switch (repairStatus) {
+            case 'start':
+              setRepairStatus('overloaded');
+              break;
+            case 'complete':
+              setRepairStatus('start');
+              break;
+            default:
+              showWrongInteractionFeedback();
+              break;
+          }
+        }}
+      />
+      <GltfModel
+        url={BOX_URL}
+        position={[0.15, 1.0, -1.76]}
+        rotation={[0.0, 0.14, 0.0]}
+        scale={[0.5, 0.5, 0.2]}
+        opacity={0}
+        interaction={() => {
+          switch (repairStatus) {
+            case 'start':
+              setRepairStatus('overloaded');
+              break;
+            case 'complete':
+              setRepairStatus('start');
+              break;
+            default:
+              showWrongInteractionFeedback();
+              break;
+          }
+        }}
+      />
       <GltfModel
         url={ELECTRIC_BOX_URL}
         position={[-12.26, 0.05, 4.75]}
         rotation={[0, 1.8, 0]}
         scale={1.9}
       />
-
       <GltfModel
         url={CIRCUIT_BREAKER_SET_URL}
         position={[-12.25, 1.9, 4.83]}
         rotation={[0.0, 0.2, 0.0]}
         scale={0.015}
       />
-
       <GltfModel
         url={CIRCUIT_BREAKER_URL}
         position={[-12.24, 1.68, 4.99]}
         rotation={[0.0, 3.4, 0.0]}
         scale={0.016}
-        interaction={showWrongBreakerFeedback}
+        interaction={showWrongInteractionFeedback}
       />
-
       <GltfModel
         url={CIRCUIT_BREAKER_URL}
         position={[-12.26, 1.68, 4.92]}
         rotation={[0.0, 3.4, 0.0]}
         scale={0.016}
-        interaction={showWrongBreakerFeedback}
+        interaction={showWrongInteractionFeedback}
       />
-
       <GltfModel
         url={CIRCUIT_BREAKER_URL}
         position={[-12.28, 1.68, 4.85]}
         rotation={[0.0, 3.4, 0.0]}
         scale={0.016}
-        interaction={showWrongBreakerFeedback}
+        interaction={showWrongInteractionFeedback}
       />
-
       <GltfModel
         url={CIRCUIT_BREAKER_URL}
         position={[-12.4, 1.73, 4.48]}
         rotation={[0.0, 3.4, 0.0]}
         scale={0.016}
-        visible={repairStatus == 'start' || repairStatus == 'complete'}
+        opacity={
+          repairStatus == 'start' || repairStatus == 'overloaded' || repairStatus == 'complete'
+            ? 1
+            : 0
+        }
         interaction={
           repairStatus == 'removed'
             ? null
             : () => {
                 switch (repairStatus) {
-                  case 'start':
+                  case 'overloaded':
                     setRepairStatus('removed');
                     break;
                   case 'collected':
                     setRepairStatus('complete');
                     break;
-                  case 'complete':
-                    showWrongBreakerFeedback();
+                  default:
+                    showWrongInteractionFeedback();
                     break;
                 }
               }
         }
       />
-
       <GltfModel
         url={CIRCUIT_BREAKER_URL}
         position={[-12.42, 1.73, 4.4]}
         rotation={[0.0, 3.4, 0.0]}
         scale={0.016}
-        interaction={showWrongBreakerFeedback}
+        interaction={showWrongInteractionFeedback}
       />
-
       <GltfModel
         url={CIRCUIT_BREAKER_URL}
         position={[-11, 1.4, -13]}

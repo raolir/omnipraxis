@@ -4,6 +4,12 @@ body,
   width: 100%;
   height: 100%;
   margin: 0;
+  overflow: hidden;
+  touch-action: none;
+}
+
+canvas {
+  touch-action: none;
 }
 
 .ui-screen-overlay {
@@ -57,4 +63,77 @@ body,
   box-shadow: 0 0 6px rgb(0 0 0 / 0.6);
   pointer-events: none;
   transform: translate(-50%, -50%);
+}
+
+.ui-overlay-button-stack {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  pointer-events: none;
+}
+
+.ui-overlay-button-stack--reticle-bottom {
+  top: calc(50% + 28px);
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.ui-overlay-button {
+  width: 9rem;
+  height: 2.75rem;
+  border: 1px solid rgb(255 255 255 / 0.7);
+  border-radius: 999px;
+  background: rgb(5 12 16 / 0.72);
+  box-shadow:
+    0 0 0 1px rgb(0 0 0 / 0.35),
+    0 0.5rem 1.5rem rgb(0 0 0 / 0.45);
+  color: rgb(255 255 255 / 0.95);
+  font:
+    700 0.78rem / 1 system-ui,
+    sans-serif;
+  letter-spacing: 0.1em;
+  pointer-events: auto;
+  text-transform: uppercase;
+  touch-action: none;
+}
+
+.ui-overlay-button:active {
+  background: rgb(31 82 94 / 0.82);
+  border-color: rgb(125 231 255 / 0.9);
+}
+
+.touch-controls-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 3;
+  pointer-events: none;
+  touch-action: none;
+}
+
+.touch-joystick {
+  position: absolute;
+  width: 8rem;
+  height: 8rem;
+  border: 1px solid rgb(255 255 255 / 0.38);
+  border-radius: 999px;
+  background: rgb(10 18 24 / 0.24);
+  box-shadow:
+    inset 0 0 1.25rem rgb(255 255 255 / 0.08),
+    0 0.75rem 2rem rgb(0 0 0 / 0.35);
+  transform: translate(-50%, -50%);
+}
+
+.touch-joystick-knob {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 3.25rem;
+  height: 3.25rem;
+  border: 1px solid rgb(255 255 255 / 0.58);
+  border-radius: 999px;
+  background: rgb(125 231 255 / 0.24);
+  box-shadow: 0 0 1rem rgb(125 231 255 / 0.25);
+  transform: translate(-50%, -50%);
+  will-change: transform;
 }

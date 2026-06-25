@@ -7,25 +7,29 @@
 - `pnpm build` is the only configured typecheck path: it runs `tsc -b && vite build`.
 - `pnpm lint` runs ESLint; there is no test script, Vitest config, or separate typecheck script.
 - `pnpm format` runs Prettier over the repo; lockfiles and listed binary/media assets are ignored by `.prettierignore`.
-- After code edits, run verification in this order: `pnpm format` -> `pnpm lint` -> `pnpm build`.
+- After code edits, update `docs/architecture.md` whenever runtime boundaries, APIs, or data flow change, then run verification in this order: `pnpm format` -> `pnpm lint` -> `pnpm build`.
 - CI deploys `main` to GitHub Pages by checking out LFS assets, then running `pnpm install --frozen-lockfile`, `pnpm lint`, and `pnpm build` before uploading `dist`.
 
 ## Project Shape
 
 - This is a single Vite app, not a package monorepo; `pnpm-workspace.yaml` only allowlists the `unrs-resolver` install build script.
-- Runtime entry flow is `src/main.tsx` -> `src/App.tsx`; `App` should stay lean: R3F `Canvas`, `SparkRuntime`, `InputRuntime`, and Rapier `Physics` containing `PlayerRuntime` plus the active scene.
+- `docs/architecture.md` documents the platform/runtime boundaries and should stay in sync with meaningful architecture changes.
+- Runtime entry flow is `src/main.tsx` -> `src/App.tsx`; `App` should stay lean: R3F `Canvas`, `SparkRuntime`, `InputRuntime`, `ConvaiRuntime`, and `UIRuntime` wrapping Rapier `Physics` containing `PlayerRuntime` plus the active scene.
 - Scene content lives under `src/scenes/`; `CircuitBreakerScene` owns its background/lights, scene asset URLs, repair state, effect configs, and player spawn call.
 - Circuit breaker splat/collider assets live under `public/scenes/circuit-breaker/`; GLB props live under `public/assets/`. Build URLs must use `import.meta.env.BASE_URL` because Vite `base` is `/omnipraxis/`.
 - Circuit breaker splats are a paged Spark LoD asset (`splats-lod.rad` plus `.radc` pages); do not replace them with direct `.spz` imports unless the scene/runtime design changes.
 - Large scene assets must stay in Git LFS; `.gitattributes` tracks `*.glb`, `*.splat`, `*.spz`, `*.ply`, `*.rad`, and `*.radc` as LFS objects.
 - Scenes should use `src/runtime/assets/GltfModel.tsx` for GLB loading/cloning, physics, and interaction proxies instead of calling `useGLTF` directly.
+- `GltfModel` interactions are `PlayerInteraction` objects with mandatory `{ label, action }`; select the whole interaction object for each scene state instead of branching inside one action when labels/actions differ.
 - Spark internals (`@sparkjsdev/spark`, `SplatMesh`) are isolated under `src/runtime/spark/`; scenes should use `SplatModel` instead of importing Spark directly.
 - `SplatModel` reports initialized after its mounted `SplatMesh.initialized` promise resolves.
 - Player code lives under `src/runtime/player/`; scenes call `usePlayer().spawn(position, yaw?, pitch?)`, and `PlayerRuntime` keeps the single `PlayerController` disabled until spawn is applied.
-- `PlayerRuntime` owns centered interaction targeting, `KeyE` callbacks, held items, reticle, and screen tint feedback; do not move player UI back into `App.tsx`.
-- DOM UI inside the R3F tree must not return raw `<div>` elements; the player overlay creates a separate React DOM root and returns `null` to R3F to avoid `Div is not part of the THREE namespace` errors.
+- `PlayerRuntime` owns centered interaction targeting, latched interaction consumption, held items, and registering the current interaction as a generic UI overlay button; it should not render DOM UI directly.
+- `UIRuntime` owns the separate DOM overlay root, reticle, screen tint/message feedback, and generic keyed overlay buttons (`setOverlayButton(id, button | null)`) with UI-owned placement/styling.
+- DOM UI inside the R3F tree must not return raw `<div>` elements; UI overlays create separate React DOM roots and return `null` to R3F to avoid `Div is not part of the THREE namespace` errors.
 - Carried items are attached under the player's yaw node via `setHeldItem`; pass local zero transforms for held models unless intentionally offsetting them.
-- Input code lives under `src/runtime/input/`; devices mutate the singleton `inputStore`, and frame deltas are reset from `PlayerController`.
+- Input code lives under `src/runtime/input/`; keyboard, mouse, and touch devices translate device events into the singleton `inputStore` through semantic additive methods, and look frame deltas are reset from `PlayerController`.
+- Touch input supports a transient lower-left floating joystick for movement and unclaimed touch drags for look; interaction touch is provided by the player-owned generic overlay button, not by `TouchInputDevice`.
 
 ## TypeScript / Style
 

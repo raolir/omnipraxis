@@ -1,5 +1,14 @@
 import { createContext, useContext } from 'react';
 
+export type UIOverlayButtonPlacement = 'reticle-bottom';
+
+export type UIOverlayButton = {
+  label: string;
+  onPress: () => void;
+  placement: UIOverlayButtonPlacement;
+  priority?: number;
+};
+
 export type UIRuntimeContextValue = {
   showScreenFeedback: (
     tintColor: string,
@@ -7,6 +16,7 @@ export type UIRuntimeContextValue = {
     messageColor: string,
     duration: number,
   ) => void;
+  setOverlayButton: (id: string, button: UIOverlayButton | null) => void;
 };
 
 export const UIRuntimeContext = createContext<UIRuntimeContextValue | null>(null);

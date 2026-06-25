@@ -13,12 +13,14 @@ export class MouseInputDevice implements InputDevice {
       return;
     }
 
-    this.store.deltaYaw -= event.movementX * MOUSE_SENSITIVITY;
-
-    this.store.deltaPitch -= event.movementY * MOUSE_SENSITIVITY;
+    this.store.addLook(-event.movementX * MOUSE_SENSITIVITY, -event.movementY * MOUSE_SENSITIVITY);
   };
 
-  private onClick = async (): Promise<void> => {
+  private onPointerDown = async (event: PointerEvent): Promise<void> => {
+    if (event.pointerType !== 'mouse' || event.button !== 0) {
+      return;
+    }
+
     if (document.pointerLockElement !== this.element) {
       await this.element.requestPointerLock();
     }
@@ -31,12 +33,12 @@ export class MouseInputDevice implements InputDevice {
 
     window.addEventListener('mousemove', this.onMouseMove);
 
-    this.element.addEventListener('click', this.onClick);
+    this.element.addEventListener('pointerdown', this.onPointerDown);
   }
 
   dispose(): void {
     window.removeEventListener('mousemove', this.onMouseMove);
 
-    this.element.removeEventListener('click', this.onClick);
+    this.element.removeEventListener('pointerdown', this.onPointerDown);
   }
 }

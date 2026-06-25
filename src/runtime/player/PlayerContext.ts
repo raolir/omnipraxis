@@ -4,10 +4,15 @@ import type { ReactNode } from 'react';
 
 type PlayerPosition = readonly [number, number, number];
 
+export type PlayerInteraction = {
+  label: string;
+  action: () => void;
+};
+
 export type PlayerRuntimeContextValue = {
   spawn: (position: PlayerPosition, yaw?: number, pitch?: number) => void;
   interactionTargetId: string | null;
-  setInteractionTarget: (id: string, callback: () => void) => void;
+  setInteractionTarget: (id: string, interaction: PlayerInteraction) => void;
   clearInteractionTarget: (id: string) => void;
   clearCurrentInteractionTarget: () => void;
   setHeldItem: (heldItem: ReactNode | null) => void;

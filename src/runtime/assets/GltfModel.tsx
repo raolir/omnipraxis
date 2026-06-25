@@ -5,6 +5,7 @@ import * as THREE from 'three';
 
 import { usePlayer } from '../player/PlayerContext';
 
+import type { PlayerInteraction } from '../player/PlayerContext';
 import type { ThreeEvent } from '@react-three/fiber';
 
 type Vector3Tuple = [number, number, number];
@@ -20,7 +21,7 @@ type GltfModelProps = {
   rotation?: Vector3Tuple;
   scale?: number | Vector3Tuple;
   opacity?: number;
-  interaction?: (() => void) | null;
+  interaction?: PlayerInteraction | null;
   interactionDistance?: number;
   blocksInteractions?: boolean;
 };

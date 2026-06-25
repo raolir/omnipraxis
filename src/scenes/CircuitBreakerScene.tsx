@@ -17,6 +17,8 @@ const BOX_URL = `${import.meta.env.BASE_URL}assets/box.glb`;
 
 const PLAYER_SPAWN_POSITION = [0, 0, 0] as const;
 
+type RepairStatus = 'start' | 'overloaded' | 'removed' | 'collected' | 'complete';
+
 const burntBreakerSmokeProps = {
   particleCount: 250,
   spawnRadius: [0.025, 0.02, 0.025],
@@ -48,14 +50,16 @@ const burntBreakerFlameProps = {
 export const CircuitBreakerScene = () => {
   const { spawn, setHeldItem } = usePlayer();
   const { showScreenFeedback } = useUI();
-  const [repairStatus, setRepairStatus] = useState('start');
-  // Repair Status: start -> overloaded -> removed -> collected -> complete
+  const [repairStatus, setRepairStatus] = useState<RepairStatus>('start');
 
   const powerOutage =
     repairStatus === 'overloaded' || repairStatus === 'removed' || repairStatus === 'collected';
 
   const showWrongInteractionFeedback = () =>
     showScreenFeedback('rgb(255 0 0 / 0.45)', 'Wrong interaction', 'rgb(255 90 90)', 0.25);
+
+  const showTrainingCompleteFeedback = () =>
+    showScreenFeedback('rgb(0 180 80 / 0.35)', 'Training complete', 'rgb(80 255 150)', 1.5);
 
   useEffect(() => {
     if (repairStatus !== 'collected') {
@@ -95,25 +99,21 @@ export const CircuitBreakerScene = () => {
         rotation={[0.0, 0.2, 0.0]}
         scale={[0.4, 1.15, 0.75]}
         opacity={0}
-        interaction={() => {
-          switch (repairStatus) {
-            case 'start':
-              setRepairStatus('overloaded');
-              break;
-            case 'complete':
-              showScreenFeedback(
-                'rgb(0 180 80 / 0.35)',
-                'training complete',
-                'rgb(80 255 150)',
-                1.5,
-              );
-              setRepairStatus('start');
-              break;
-            default:
-              showWrongInteractionFeedback();
-              break;
-          }
-        }}
+        interaction={
+          {
+            start: { label: 'Turn on', action: () => setRepairStatus('overloaded') },
+            overloaded: { label: 'Turn on', action: showWrongInteractionFeedback },
+            removed: { label: 'Turn on', action: showWrongInteractionFeedback },
+            collected: { label: 'Turn on', action: showWrongInteractionFeedback },
+            complete: {
+              label: 'Turn on',
+              action: () => {
+                showTrainingCompleteFeedback();
+                setRepairStatus('start');
+              },
+            },
+          }[repairStatus]
+        }
       />
       <GltfModel
         url={BOX_URL}
@@ -121,25 +121,21 @@ export const CircuitBreakerScene = () => {
         rotation={[0.0, 0.14, 0.0]}
         scale={[0.5, 0.5, 0.2]}
         opacity={0}
-        interaction={() => {
-          switch (repairStatus) {
-            case 'start':
-              setRepairStatus('overloaded');
-              break;
-            case 'complete':
-              showScreenFeedback(
-                'rgb(0 180 80 / 0.35)',
-                'training complete',
-                'rgb(80 255 150)',
-                1.5,
-              );
-              setRepairStatus('start');
-              break;
-            default:
-              showWrongInteractionFeedback();
-              break;
-          }
-        }}
+        interaction={
+          {
+            start: { label: 'Turn on', action: () => setRepairStatus('overloaded') },
+            overloaded: { label: 'Turn on', action: showWrongInteractionFeedback },
+            removed: { label: 'Turn on', action: showWrongInteractionFeedback },
+            collected: { label: 'Turn on', action: showWrongInteractionFeedback },
+            complete: {
+              label: 'Turn on',
+              action: () => {
+                showTrainingCompleteFeedback();
+                setRepairStatus('start');
+              },
+            },
+          }[repairStatus]
+        }
       />
       <GltfModel
         url={ELECTRIC_BOX_URL}
@@ -158,21 +154,21 @@ export const CircuitBreakerScene = () => {
         position={[-12.24, 1.68, 4.99]}
         rotation={[0.0, 3.4, 0.0]}
         scale={0.016}
-        interaction={showWrongInteractionFeedback}
+        interaction={{ label: 'Remove', action: showWrongInteractionFeedback }}
       />
       <GltfModel
         url={CIRCUIT_BREAKER_URL}
         position={[-12.26, 1.68, 4.92]}
         rotation={[0.0, 3.4, 0.0]}
         scale={0.016}
-        interaction={showWrongInteractionFeedback}
+        interaction={{ label: 'Remove', action: showWrongInteractionFeedback }}
       />
       <GltfModel
         url={CIRCUIT_BREAKER_URL}
         position={[-12.28, 1.68, 4.85]}
         rotation={[0.0, 3.4, 0.0]}
         scale={0.016}
-        interaction={showWrongInteractionFeedback}
+        interaction={{ label: 'Remove', action: showWrongInteractionFeedback }}
       />
       <GltfModel
         url={CIRCUIT_BREAKER_URL}
@@ -185,21 +181,13 @@ export const CircuitBreakerScene = () => {
             : 0
         }
         interaction={
-          repairStatus == 'removed'
-            ? null
-            : () => {
-                switch (repairStatus) {
-                  case 'overloaded':
-                    setRepairStatus('removed');
-                    break;
-                  case 'collected':
-                    setRepairStatus('complete');
-                    break;
-                  default:
-                    showWrongInteractionFeedback();
-                    break;
-                }
-              }
+          {
+            start: { label: 'Remove', action: showWrongInteractionFeedback },
+            overloaded: { label: 'Remove', action: () => setRepairStatus('removed') },
+            removed: null,
+            collected: { label: 'Install', action: () => setRepairStatus('complete') },
+            complete: { label: 'Remove', action: showWrongInteractionFeedback },
+          }[repairStatus]
         }
       />
       <GltfModel
@@ -207,7 +195,7 @@ export const CircuitBreakerScene = () => {
         position={[-12.42, 1.73, 4.4]}
         rotation={[0.0, 3.4, 0.0]}
         scale={0.016}
-        interaction={showWrongInteractionFeedback}
+        interaction={{ label: 'Remove', action: showWrongInteractionFeedback }}
       />
       <GltfModel
         url={CIRCUIT_BREAKER_URL}
@@ -215,7 +203,15 @@ export const CircuitBreakerScene = () => {
         rotation={[0.0, 0.0, 0.0]}
         scale={0.016}
         visible={repairStatus != 'collected' && repairStatus != 'complete'}
-        interaction={repairStatus == 'removed' ? () => setRepairStatus('collected') : null}
+        interaction={
+          {
+            start: null,
+            overloaded: null,
+            removed: { label: 'Pick up', action: () => setRepairStatus('collected') },
+            collected: null,
+            complete: null,
+          }[repairStatus]
+        }
       />
     </group>
   );

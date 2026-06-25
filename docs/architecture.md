@@ -4,8 +4,8 @@ This document describes Omnipraxis as a reusable scene-authoring platform. It do
 
 The core architectural boundary is between the platform runtime and a scene specification.
 
-- The platform runtime owns input, player movement, centered interaction targeting, UI overlays, Spark renderer setup, physics setup, and reusable asset/effect abstractions.
-- A scene specification owns asset URLs, component composition, transforms, local state, effect parameters, and scene-specific interaction callbacks.
+- The platform runtime owns input, player movement, centered interaction targeting, UI overlays, generic overlay controls, Spark renderer setup, physics setup, and reusable asset/effect abstractions.
+- A scene specification owns asset URLs, component composition, transforms, local state, effect parameters, and scene-specific labeled interactions.
 
 ## Runtime Stack
 
@@ -48,7 +48,7 @@ flowchart LR
 
   GltfModel --> GLBLoading[GLB loading and cloning]
   GltfModel --> OptionalPhysics[optional Rapier physics]
-  GltfModel --> Interaction[interaction callbacks]
+  GltfModel --> Interaction[labeled interactions]
   GltfModel --> MaterialFeedback[opacity and target feedback]
 
   SplatModel --> SparkSplat[Spark SplatMesh]
@@ -76,7 +76,7 @@ flowchart TD
     SceneAssets[asset URLs]
     SceneLayout[spatial placement]
     SceneState[scene-local state]
-    SceneInteractions[interaction callbacks]
+    SceneInteractions[labeled interactions]
     SceneEffects[effect parameters]
   end
 
@@ -90,10 +90,10 @@ The platform provides these reusable capabilities to every scene specification.
 
 - `Canvas` and render-loop hosting through React Three Fiber.
 - `SparkRuntime` for `SparkRenderer` setup.
-- `InputRuntime` for keyboard, mouse, pointer lock, and input-store mutation.
-- `PlayerRuntime` for spawn lifecycle, centered interaction targeting, held items, and current interaction callbacks.
+- `InputRuntime` for keyboard, mouse, touch, pointer lock, and input-store mutation through semantic methods.
+- `PlayerRuntime` for spawn lifecycle, centered interaction targeting, held items, latched interaction consumption, and registering the current interaction overlay button.
 - `PlayerController` for fixed-step movement, camera yaw/pitch, Rapier character-controller movement, and held-item mounting.
-- `UIRuntime` for screen tint, top-center screen messages, and reticle DOM overlay rendering.
+- `UIRuntime` for screen tint, top-center screen messages, reticle DOM overlay rendering, and generic keyed overlay buttons.
 - `ConvaiRuntime` for the stock Convai widget overlay.
 - `GltfModel` for GLB loading, cloning, opacity, material feedback, interaction targeting, optional physics, and blocking behavior.
 - `SplatModel` for Spark splat loading and scene-scoped child Spark edit nodes.
@@ -108,20 +108,21 @@ A scene specification provides authored content and scene-specific logic.
 - Component composition using platform primitives.
 - Spatial placement through positions, rotations, scales, and visibility/opacity controls.
 - Scene-local state and transitions.
-- Interaction callbacks passed into platform components.
+- Labeled `PlayerInteraction` objects passed into platform components.
 - Effect parameters for particles, splat edits, lights, and other scene-owned effects.
 - Calls into `usePlayer` for player spawning and held-item state.
-- Calls into `useUI` for screen feedback.
+- Calls into `useUI` for screen feedback when scene-local logic needs it.
 
 ## Scene Specification Should Not Own
 
 These responsibilities should remain in the platform runtime unless the platform API changes intentionally.
 
-- Low-level keyboard or mouse listeners.
+- Low-level keyboard, mouse, or touch listeners.
 - Pointer lock setup.
 - Player movement or camera yaw/pitch implementation.
 - Centered raycaster computation.
 - DOM overlay roots inside the R3F tree.
+- Interaction overlay button rendering or layout.
 - Spark renderer setup.
 - Raw Spark imports when a platform wrapper exists.
 - Raw `useGLTF` calls when `GltfModel` can represent the asset.
@@ -129,42 +130,51 @@ These responsibilities should remain in the platform runtime unless the platform
 
 ## Interaction Targeting Flow
 
-Interaction targeting is owned by the player runtime. Scenes provide callbacks, but do not own input collection or raycaster centering.
+Interaction targeting is owned by the player runtime. Scenes provide labeled interactions, but do not own input collection, raycaster centering, or overlay button rendering.
 
 ```mermaid
 sequenceDiagram
   participant Keyboard as KeyboardInputDevice
   participant Mouse as MouseInputDevice
+  participant Touch as TouchInputDevice
   participant Store as InputStore
   participant Player as PlayerRuntime
+  participant UI as UIRuntime
   participant Model as GltfModel
   participant Scene as Scene Specification
 
-  Keyboard->>Store: update move and interact state
-  Mouse->>Store: update look deltas
+  Keyboard->>Store: add movement and trigger interact
+  Mouse->>Store: add look deltas
+  Touch->>Store: add joystick movement and look deltas
   Player->>Player: center R3F raycaster
   Player->>Model: R3F pointer events
-  Model->>Player: set or clear current interaction target
-  Store->>Player: interact pressed
-  Player->>Scene: invoke current scene callback
+  Model->>Player: set or clear current labeled interaction
+  Player->>UI: register or clear player-interaction overlay button
+  Store->>Player: latched interact requested
+  UI->>Player: overlay button pressed
+  Player->>Store: trigger latched interact
+  Player->>Scene: invoke current scene action
 ```
 
-## UI Feedback Flow
+## UI Feedback And Overlay Flow
 
-UI feedback is a platform service. Scene specifications request feedback through `useUI`, and `UIRuntime` owns rendering and timing.
+UI feedback and overlay controls are platform services. Scene specifications request feedback through `useUI`, while platform runtimes such as `PlayerRuntime` can register generic overlay buttons by stable ID. `UIRuntime` owns rendering, timing, placement, and styling.
 
 ```mermaid
 sequenceDiagram
   participant Scene as Scene Specification
   participant UIContext as UIContext
+  participant Player as PlayerRuntime
   participant UIRuntime as UIRuntime
   participant DOM as Separate DOM Overlay
 
   Scene->>UIContext: showScreenFeedback(tint, message, messageColor, duration)
   UIContext->>UIRuntime: update feedback state
-  UIRuntime->>DOM: render screen tint, message, and reticle
+  Player->>UIContext: setOverlayButton(id, button or null)
+  UIContext->>UIRuntime: update keyed overlay buttons
+  UIRuntime->>DOM: render screen tint, message, reticle, and overlay buttons
   UIRuntime->>UIRuntime: count down duration
-  UIRuntime->>DOM: clear tint and message
+  UIRuntime->>DOM: clear expired tint/message and removed buttons
 ```
 
 ## Rendering And Asset Abstractions
@@ -194,12 +204,13 @@ flowchart LR
 
 ## Input And Player Boundary
 
-Input devices mutate a shared store. Player systems consume that store. Scenes interact with the player through a narrow context API.
+Input devices translate device events into a shared semantic store. Player systems consume that store. Scenes interact with the player through a narrow context API.
 
 ```mermaid
 flowchart TD
   KeyboardDevice[KeyboardInputDevice] --> InputStore
   MouseDevice[MouseInputDevice] --> InputStore
+  TouchDevice[TouchInputDevice] --> InputStore
 
   InputStore --> PlayerController
   InputStore --> PlayerRuntime
@@ -207,11 +218,16 @@ flowchart TD
   PlayerController --> Movement[fixed-step movement]
   PlayerController --> Camera[yaw and pitch camera]
   PlayerRuntime --> Targeting[centered interaction targeting]
+  PlayerRuntime --> InteractionButton[player-interaction overlay button]
   PlayerRuntime --> HeldItem[held item mount]
 
   Scene[Scene Specification] -->|usePlayer.spawn| PlayerRuntime
   Scene -->|usePlayer.setHeldItem| PlayerRuntime
 ```
+
+`InputStore` remains device-agnostic. Devices add their current movement contribution by applying deltas to aggregate movement, add frame-based look deltas, and only request interaction with a latched `triggerInteract()` signal. Interaction clearing happens in `PlayerRuntime` after the request is consumed.
+
+Keyboard `KeyE` ignores repeated keydown events, so holding the key does not repeatedly trigger interactions. Touch movement uses a transient lower-left floating joystick, and unclaimed touch drags add look deltas. Touch interaction is performed through the player-owned overlay button rendered by `UIRuntime`, not by `TouchInputDevice`.
 
 ## Platform API Summary
 
@@ -224,15 +240,18 @@ spawn(position, yaw?, pitch?)
 setHeldItem(heldItem)
 ```
 
-The player runtime also exposes lower-level interaction target methods through context for platform components such as `GltfModel`. Scene specifications generally provide callbacks to `GltfModel` instead of calling those methods directly.
+The player runtime also exposes lower-level interaction target methods through context for platform components such as `GltfModel`. Scene specifications generally provide labeled interactions to `GltfModel` instead of calling those methods directly.
 
 ### `useUI`
 
-`useUI` exposes UI-owned services to scene specifications.
+`useUI` exposes UI-owned services to scene specifications and platform runtimes.
 
 ```ts
 showScreenFeedback(tintColor, message, messageColor, duration);
+setOverlayButton(id, button | null);
 ```
+
+`setOverlayButton` is a generic UI service. Callers provide a stable ID, label, press callback, semantic placement, and optional priority. `UIRuntime` owns the DOM, stacking, placement, and visual styling; callers own the button meaning.
 
 ### `GltfModel`
 
@@ -251,6 +270,17 @@ interaction;
 interactionDistance;
 blocksInteractions;
 ```
+
+`interaction` is either `null` or a `PlayerInteraction` object:
+
+```ts
+{
+  label: string;
+  action: () => void;
+}
+```
+
+The label is mandatory because it is shown by the player-owned overlay button. If a scene state changes the available label or behavior, select a different `PlayerInteraction` object for that state rather than branching inside one action.
 
 ### `SplatModel`
 

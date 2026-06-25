@@ -4,8 +4,9 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { PlayerRuntimeContext } from './PlayerContext';
 import { PlayerController } from './PlayerController';
 import { inputStore } from '../input/InputStore';
+import { useUI } from '../ui/UIContext';
 
-import type { PlayerRuntimeContextValue } from './PlayerContext';
+import type { PlayerInteraction, PlayerRuntimeContextValue } from './PlayerContext';
 import type { ReactNode } from 'react';
 
 type PlayerSpawnRequest = {
@@ -19,18 +20,26 @@ type PlayerRuntimeProps = {
   physicsTimeStep: number;
 };
 
+type ActiveInteraction = {
+  id: string;
+  interaction: PlayerInteraction;
+};
+
+const PLAYER_INTERACTION_BUTTON_ID = 'player-interaction';
+
 export const PlayerRuntime = ({ children, physicsTimeStep }: PlayerRuntimeProps) => {
   const events = useThree((state) => state.events);
   const get = useThree((state) => state.get);
   const setEvents = useThree((state) => state.setEvents);
+  const { setOverlayButton } = useUI();
 
   const [enabled, setEnabled] = useState(false);
   const [spawnRequest, setSpawnRequest] = useState<PlayerSpawnRequest | null>(null);
-  const [interactionTargetId, setInteractionTargetId] = useState<string | null>(null);
+  const [activeInteraction, setActiveInteraction] = useState<ActiveInteraction | null>(null);
   const [heldItem, setHeldItem] = useState<ReactNode | null>(null);
 
-  const interactionCallbackRef = useRef<(() => void) | null>(null);
-  const wasInteractPressedRef = useRef(false);
+  const activeInteractionRef = useRef<ActiveInteraction | null>(null);
+  const interactionTargetId = activeInteraction?.id ?? null;
 
   useEffect(() => {
     const previousCompute = get().events.compute;
@@ -50,14 +59,36 @@ export const PlayerRuntime = ({ children, physicsTimeStep }: PlayerRuntimeProps)
   useFrame(() => {
     events.update?.();
 
-    const interactPressed = inputStore.interact;
-
-    if (interactPressed && !wasInteractPressedRef.current) {
-      interactionCallbackRef.current?.();
+    if (!inputStore.interact) {
+      return;
     }
 
-    wasInteractPressedRef.current = interactPressed;
+    inputStore.clearInteract();
+    activeInteractionRef.current?.interaction.action();
   });
+
+  const triggerInteractionInput = useCallback(() => {
+    inputStore.triggerInteract();
+  }, []);
+
+  useEffect(() => {
+    setOverlayButton(
+      PLAYER_INTERACTION_BUTTON_ID,
+      activeInteraction
+        ? {
+            label: activeInteraction.interaction.label,
+            onPress: triggerInteractionInput,
+            placement: 'reticle-bottom',
+          }
+        : null,
+    );
+  }, [activeInteraction, setOverlayButton, triggerInteractionInput]);
+
+  useEffect(() => {
+    return () => {
+      setOverlayButton(PLAYER_INTERACTION_BUTTON_ID, null);
+    };
+  }, [setOverlayButton]);
 
   const spawn = useCallback((position: readonly [number, number, number], yaw = 0, pitch = 0) => {
     setEnabled(false);
@@ -69,26 +100,31 @@ export const PlayerRuntime = ({ children, physicsTimeStep }: PlayerRuntimeProps)
     setEnabled(true);
   }, []);
 
-  const setInteractionTarget = useCallback((id: string, callback: () => void) => {
-    interactionCallbackRef.current = callback;
-    setInteractionTargetId(id);
+  const setInteractionTarget = useCallback((id: string, interaction: PlayerInteraction) => {
+    const currentInteraction = activeInteractionRef.current;
+
+    if (currentInteraction?.id === id && currentInteraction.interaction === interaction) {
+      return;
+    }
+
+    const nextInteraction = { id, interaction };
+
+    activeInteractionRef.current = nextInteraction;
+    setActiveInteraction(nextInteraction);
   }, []);
 
   const clearInteractionTarget = useCallback((id: string) => {
-    setInteractionTargetId((currentTargetId) => {
-      if (currentTargetId !== id) {
-        return currentTargetId;
-      }
+    if (activeInteractionRef.current?.id !== id) {
+      return;
+    }
 
-      interactionCallbackRef.current = null;
-
-      return null;
-    });
+    activeInteractionRef.current = null;
+    setActiveInteraction(null);
   }, []);
 
   const clearCurrentInteractionTarget = useCallback(() => {
-    interactionCallbackRef.current = null;
-    setInteractionTargetId(null);
+    activeInteractionRef.current = null;
+    setActiveInteraction(null);
   }, []);
 
   const contextValue = useMemo<PlayerRuntimeContextValue>(

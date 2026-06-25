@@ -7,6 +7,24 @@ export class InputStore {
 
   interact = false;
 
+  addMovement(x: number, z: number): void {
+    this.moveX += x;
+    this.moveZ += z;
+  }
+
+  addLook(deltaYaw: number, deltaPitch: number): void {
+    this.deltaYaw += deltaYaw;
+    this.deltaPitch += deltaPitch;
+  }
+
+  triggerInteract(): void {
+    this.interact = true;
+  }
+
+  clearInteract(): void {
+    this.interact = false;
+  }
+
   resetFrameDeltas(): void {
     this.deltaYaw = 0;
     this.deltaPitch = 0;

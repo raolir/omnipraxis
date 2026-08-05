@@ -52,7 +52,7 @@ flowchart LR
 
 Release builds resolve `splats.spz` and `colliders.glb` from the executable directory. Debug builds use `public/scenes/base/`, while `OMNIPRAXIS_SCENE_DIR` provides an explicit development override. The host checks file readability, the SPZ gzip signature, and GLB 2 header/length before returning protocol URLs. Loader or render failures are surfaced by the desktop error UI instead of intentionally falling back to embedded scene assets.
 
-The desktop renderer uses a dedicated Vite configuration with `base: './'`, `publicDir: false`, and `build/desktop` output. This prevents the web scene index, Convai integration, and complete public asset tree from becoming part of the desktop renderer. The current portable artifact depends on an installed Evergreen WebView2 runtime and is intentionally unsigned while feasibility is evaluated.
+The desktop renderer uses a dedicated Vite configuration with `base: './'`, `publicDir: false`, and `build/desktop` output. This prevents the web scene index, Convai integration, and complete public asset tree from becoming part of the desktop renderer. Its CSP permits `data:` fetches and workers because Spark initializes trusted embedded WASM and provides a data-worker fallback. The current portable artifact depends on an installed Evergreen WebView2 runtime and is intentionally unsigned while feasibility is evaluated.
 
 ## Scene URL Routing
 

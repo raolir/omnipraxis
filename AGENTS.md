@@ -10,7 +10,7 @@
 - `pnpm format` runs Prettier over the repo; lockfiles and listed binary/media assets are ignored by `.prettierignore`.
 - After code edits, update `docs/architecture.md` whenever runtime boundaries, APIs, or data flow change, then run verification in this order: `pnpm format` -> `pnpm lint` -> `pnpm build`.
 - CI deploys `main` to GitHub Pages by checking out LFS assets, then running `pnpm install --frozen-lockfile`, `pnpm lint`, and `pnpm build` before uploading `dist`.
-- The manual Windows workflow builds the unsigned Tauri executable on `windows-latest` and uploads a portable folder containing `Omnipraxis.exe`, `splats.spz`, and `colliders.glb`.
+- The manual Windows workflow builds the unsigned Tauri executable on `windows-latest` and uploads an artifact containing `Omnipraxis/Omnipraxis.exe`, `Omnipraxis/splats.spz`, and `Omnipraxis/colliders.glb`.
 
 ## Project Shape
 

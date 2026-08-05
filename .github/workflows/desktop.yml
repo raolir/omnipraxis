@@ -18,16 +18,13 @@ jobs:
       - name: Checkout LFS objects
         run: git lfs checkout
 
-      - name: Set up pnpm
-        uses: pnpm/action-setup@v4
+      - name: Set up pnpm and Node
+        uses: pnpm/setup@v1
         with:
           version: 11.3.0
-
-      - name: Set up Node
-        uses: actions/setup-node@v6
-        with:
-          node-version: 24
-          cache: pnpm
+          runtime: node@24
+          cache: true
+          install: false
 
       - name: Set up Rust
         uses: dtolnay/rust-toolchain@stable
@@ -47,13 +44,13 @@ jobs:
       - name: Assemble portable folder
         shell: pwsh
         run: |
-          New-Item -ItemType Directory -Force -Path "build/windows-portable"
-          Copy-Item "src-tauri/target/release/Omnipraxis.exe" "build/windows-portable/Omnipraxis.exe"
-          Copy-Item "public/scenes/base/splats.spz" "build/windows-portable/splats.spz"
-          Copy-Item "public/scenes/base/colliders.glb" "build/windows-portable/colliders.glb"
+          New-Item -ItemType Directory -Force -Path "build/windows-portable/Omnipraxis"
+          Copy-Item "src-tauri/target/release/Omnipraxis.exe" "build/windows-portable/Omnipraxis/Omnipraxis.exe"
+          Copy-Item "public/scenes/base/splats.spz" "build/windows-portable/Omnipraxis/splats.spz"
+          Copy-Item "public/scenes/base/colliders.glb" "build/windows-portable/Omnipraxis/colliders.glb"
 
       - name: Upload portable app
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: omnipraxis-windows-x64
           path: build/windows-portable

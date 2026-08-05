@@ -36,16 +36,13 @@ jobs:
       - name: Checkout LFS objects
         run: git lfs checkout
 
-      - name: Set up pnpm
-        uses: pnpm/action-setup@v4
+      - name: Set up pnpm and Node
+        uses: pnpm/setup@v1
         with:
           version: 11.3.0
-
-      - name: Set up Node
-        uses: actions/setup-node@v6
-        with:
-          node-version: 24
-          cache: 'pnpm'
+          runtime: node@24
+          cache: true
+          install: false
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile

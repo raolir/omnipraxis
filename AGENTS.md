@@ -5,21 +5,26 @@
 - Use `pnpm` with Node `>=24`; `package.json` pins `packageManager` to `pnpm@11.3.0`.
 - `pnpm dev` starts Vite and opens the browser; `pnpm preview` serves the built `dist` output.
 - `pnpm build` is the only configured typecheck path: it runs `tsc -b && vite build`.
+- `pnpm desktop:dev` starts the dedicated Tauri desktop app and its Vite renderer; `pnpm desktop:renderer:build` verifies the routing-free desktop frontend, and `pnpm desktop:build` creates the native executable without an installer bundle.
 - `pnpm lint` runs ESLint; there is no test script, Vitest config, or separate typecheck script.
 - `pnpm format` runs Prettier over the repo; lockfiles and listed binary/media assets are ignored by `.prettierignore`.
 - After code edits, update `docs/architecture.md` whenever runtime boundaries, APIs, or data flow change, then run verification in this order: `pnpm format` -> `pnpm lint` -> `pnpm build`.
 - CI deploys `main` to GitHub Pages by checking out LFS assets, then running `pnpm install --frozen-lockfile`, `pnpm lint`, and `pnpm build` before uploading `dist`.
+- The manual Windows workflow builds the unsigned Tauri executable on `windows-latest` and uploads a portable folder containing `Omnipraxis.exe`, `splats.spz`, and `colliders.glb`.
 
 ## Project Shape
 
-- This is a single Vite app, not a package monorepo; `pnpm-workspace.yaml` only allowlists the `unrs-resolver` install build script.
+- This is a single package, not a package monorepo; web and desktop Vite entries share application sources, and `pnpm-workspace.yaml` only allowlists the `unrs-resolver` install build script.
 - `docs/architecture.md` documents the platform/runtime boundaries and should stay in sync with meaningful architecture changes.
-- Runtime entry flow is `src/main.tsx` -> `src/SceneRouter.tsx` -> `src/App.tsx`; `SceneRouter` owns pathname selection and renders the DOM scene index/not-found pages outside R3F, while `App` stays lean: R3F `Canvas`, `SparkRuntime`, `InputRuntime`, `ConvaiRuntime`, and `UIRuntime` wrapping Rapier `Physics` containing `PlayerRuntime` plus the active scene.
+- Web entry flow is `src/main.tsx` -> `src/SceneRouter.tsx` -> `src/App.tsx` -> `src/RuntimeApp.tsx`; `SceneRouter` owns pathname selection and renders the DOM scene index/not-found pages outside R3F, `App` injects the web-only `ConvaiRuntime`, and `RuntimeApp` owns the shared R3F/physics/player shell plus the active scene.
+- Desktop entry flow is `desktop/src/main.tsx` -> `DesktopRoot` -> `RuntimeApp` -> `BaseScene`; it intentionally excludes scene routing and Convai.
+- The Tauri host under `src-tauri/` validates `splats.spz` and `colliders.glb`, allows only those files through the asset protocol, and resolves them beside the executable in release builds. Development resolves the checked-in base assets, and `OMNIPRAXIS_SCENE_DIR` can override the scene directory.
+- The desktop Vite config uses a relative base, a separate `build/desktop` output, and `publicDir: false`; do not copy the full web `public/` tree into the executable.
 - Scene routes are declared in `src/scenes/sceneManifest.ts` and mapped to prop-free scene components in `src/scenes/sceneRegistry.ts`; route slugs use lowercase kebab-case and URLs are resolved relative to `import.meta.env.BASE_URL`.
 - The root route is a scene index. Its links use `history.pushState`, preserve the current query/hash, and `SceneRouter` handles browser Back/Forward through `popstate`; active scenes intentionally provide no navigation UI yet.
 - GitHub Pages currently receives only the root `index.html`, so nested scene paths work after client-side navigation but not as direct entry points or refresh targets. Future per-scene HTML shells should reuse the manifest and the existing initial-path resolver.
 - Scene content lives under `src/scenes/`; `CircuitBreakerScene` owns its background/lights, scene asset URLs, repair state, effect configs, and player spawn call.
-- Base scene assets live under `public/scenes/base/`; `BaseScene` loads `splats.spz` as a direct non-paged splat and uses the transparent collider model for physics and interaction blocking.
+- Base scene assets live under `public/scenes/base/`; `BaseScene` loads `splats.spz` as a direct non-paged splat and uses the transparent collider model for physics and interaction blocking. Its optional URL props let the desktop adapter supply external asset-protocol URLs while the web registry uses the public defaults.
 - Circuit breaker splat/collider assets live under `public/scenes/circuit-breaker/`; GLB props live under `public/assets/`. Build URLs must use `import.meta.env.BASE_URL` because Vite `base` is `/omnipraxis/`.
 - Circuit breaker splats are a paged Spark LoD asset (`splats-lod.rad` plus `.radc` pages); do not replace them with direct `.spz` imports unless the scene/runtime design changes.
 - Large scene assets must stay in Git LFS; `.gitattributes` tracks `*.glb`, `*.splat`, `*.spz`, `*.ply`, `*.rad`, and `*.radc` as LFS objects.

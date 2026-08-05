@@ -74,6 +74,38 @@ Scene links use client-side history navigation and browser Back returns to the i
 
 To add a scene, create a prop-free scene component in `src/scenes/`, add its public slug and title to `sceneManifest.ts`, and map that slug to the component in `sceneRegistry.ts`. Public asset URLs must use `import.meta.env.BASE_URL`.
 
+## Windows Desktop
+
+The Tauri desktop entry mounts `BaseScene` directly without scene routing or Convai. Its release layout is:
+
+```text
+Omnipraxis.exe
+splats.spz
+colliders.glb
+```
+
+Close the application before replacing both scene files, preserve their filenames, and restart it to load the replacement pair. Replacement assets must share the same origin, scale, orientation, visual/collider alignment, and `[0, 0, 0]` spawn convention. The collider must be a self-contained GLB 2 file and the splat must be a gzip-compressed SPZ file.
+
+Run the desktop app in development:
+
+```bash
+pnpm desktop:dev
+```
+
+Build only the desktop renderer on any supported development platform:
+
+```bash
+pnpm desktop:renderer:build
+```
+
+Create the native executable on Windows:
+
+```bash
+pnpm desktop:build
+```
+
+The manual `Build Windows desktop app` GitHub Actions workflow produces an unsigned `omnipraxis-windows-x64` artifact with the executable and both replaceable assets. The portable executable requires Microsoft Edge WebView2 on the target machine; the current spike does not bundle or install WebView2 and is not code-signed.
+
 ## Build
 
 Create a production build:

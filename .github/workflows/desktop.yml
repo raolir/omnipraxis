@@ -1,0 +1,60 @@
+name: Build Windows desktop app
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          lfs: true
+
+      - name: Checkout LFS objects
+        run: git lfs checkout
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 11.3.0
+
+      - name: Set up Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Set up Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Lint
+        run: pnpm lint
+
+      - name: Build web app
+        run: pnpm build
+
+      - name: Build desktop executable
+        run: pnpm desktop:build
+
+      - name: Assemble portable folder
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path "build/windows-portable"
+          Copy-Item "src-tauri/target/release/Omnipraxis.exe" "build/windows-portable/Omnipraxis.exe"
+          Copy-Item "public/scenes/base/splats.spz" "build/windows-portable/splats.spz"
+          Copy-Item "public/scenes/base/colliders.glb" "build/windows-portable/colliders.glb"
+
+      - name: Upload portable app
+        uses: actions/upload-artifact@v4
+        with:
+          name: omnipraxis-windows-x64
+          path: build/windows-portable
+          if-no-files-found: error

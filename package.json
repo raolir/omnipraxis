@@ -11,6 +11,10 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
+    "desktop:dev": "tauri dev",
+    "desktop:renderer:dev": "vite --config vite.desktop.config.ts",
+    "desktop:renderer:build": "tsc -b && vite build --config vite.desktop.config.ts",
+    "desktop:build": "tauri build --no-bundle",
     "preview": "vite preview",
     "lint": "eslint .",
     "format": "prettier . --write"
@@ -22,6 +26,7 @@
     "@react-three/rapier": "^2.2.0",
     "@react-three/xr": "^6.6.29",
     "@sparkjsdev/spark": "^2.1.0",
+    "@tauri-apps/api": "^2.11.1",
     "leva": "^0.10.1",
     "react": "^19.2.6",
     "react-dom": "^19.2.6",
@@ -36,6 +41,7 @@
     "@types/three": "^0.184.1",
     "@typescript-eslint/eslint-plugin": "^8.59.4",
     "@typescript-eslint/parser": "^8.59.4",
+    "@tauri-apps/cli": "^2.11.4",
     "@vitejs/plugin-react": "^6.0.1",
     "eslint": "^9.39.4",
     "eslint-config-prettier": "^10.1.8",

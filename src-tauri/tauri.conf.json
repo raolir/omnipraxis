@@ -1,0 +1,40 @@
+{
+  "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
+  "productName": "Omnipraxis",
+  "mainBinaryName": "Omnipraxis",
+  "version": "0.0.0",
+  "identifier": "io.github.raolir.omnipraxis",
+  "build": {
+    "beforeDevCommand": "pnpm desktop:renderer:dev",
+    "beforeBuildCommand": "pnpm desktop:renderer:build",
+    "devUrl": "http://localhost:1420",
+    "frontendDist": "../build/desktop"
+  },
+  "app": {
+    "windows": [
+      {
+        "label": "main",
+        "title": "Omnipraxis",
+        "width": 1280,
+        "height": 720,
+        "minWidth": 800,
+        "minHeight": 600,
+        "resizable": true,
+        "fullscreen": false
+      }
+    ],
+    "security": {
+      "csp": "default-src 'self'; connect-src 'self' ipc: http://ipc.localhost asset: http://asset.localhost blob:; img-src 'self' asset: http://asset.localhost data: blob:; script-src 'self' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; worker-src 'self' blob:; object-src 'none'; base-uri 'none'; frame-ancestors 'none'",
+      "assetProtocol": {
+        "enable": true,
+        "scope": []
+      },
+      "capabilities": ["main"]
+    },
+    "withGlobalTauri": false
+  },
+  "bundle": {
+    "active": false,
+    "targets": "all"
+  }
+}

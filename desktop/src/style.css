@@ -1,0 +1,40 @@
+.desktop-status-page {
+  box-sizing: border-box;
+  display: grid;
+  width: 100%;
+  height: 100%;
+  padding: 2rem;
+  background: #071014;
+  color: #e9f3f5;
+  font-family: system-ui, sans-serif;
+  place-items: center;
+}
+
+.desktop-status-panel {
+  width: min(36rem, 100%);
+  padding: clamp(1.5rem, 5vw, 3rem);
+  border: 1px solid rgb(125 231 255 / 0.28);
+  background: rgb(8 24 30 / 0.92);
+}
+
+.desktop-status-panel h1 {
+  margin: 0 0 1rem;
+  font-size: clamp(2rem, 6vw, 3.5rem);
+  line-height: 1;
+}
+
+.desktop-status-panel p:last-child {
+  margin: 0;
+  color: #c6d8dc;
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+}
+
+.desktop-status-eyebrow {
+  margin: 0 0 1rem;
+  color: #7de7ff;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}

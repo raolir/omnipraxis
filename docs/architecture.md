@@ -9,19 +9,23 @@ The core architectural boundary is between the platform runtime and a scene spec
 
 ## Runtime Stack
 
-`SceneRouter.tsx` selects the root scene index, an unknown-route page, or a registered scene from the current pathname. `App.tsx` composes the reusable runtime shell for a selected scene, which is mounted beneath the platform services it is allowed to consume.
+The web entry uses `SceneRouter.tsx` to select the root scene index, an unknown-route page, or a registered scene from the current pathname. `App.tsx` adds web-only services such as Convai to `RuntimeApp.tsx`, which composes the reusable runtime shell for a selected scene. The desktop entry bypasses routing and mounts `BaseScene` directly in `RuntimeApp` without Convai.
 
 ```mermaid
 flowchart TD
-  Main[main.tsx] --> Router[SceneRouter]
+  Main[Web main.tsx] --> Router[SceneRouter]
   Router --> Index[DOM Scene Index]
   Router --> NotFound[DOM Not-Found Page]
   Router --> App[App.tsx]
-  App --> Canvas[R3F Canvas]
+  App --> ConvaiRuntime[ConvaiRuntime]
+  App --> RuntimeApp[RuntimeApp.tsx]
+
+  DesktopMain[Desktop main.tsx] --> DesktopRoot[DesktopRoot]
+  DesktopRoot --> RuntimeApp
+  RuntimeApp --> Canvas[R3F Canvas]
 
   Canvas --> SparkRuntime[SparkRuntime]
   Canvas --> InputRuntime[InputRuntime]
-  Canvas --> ConvaiRuntime[ConvaiRuntime]
   Canvas --> UIRuntime[UIRuntime]
 
   UIRuntime --> Suspense[Suspense]
@@ -29,6 +33,26 @@ flowchart TD
   Physics --> PlayerRuntime[PlayerRuntime]
   PlayerRuntime --> Scene[Scene Specification]
 ```
+
+## Windows Desktop Boundary
+
+The Tauri desktop host is a platform adapter around the shared browser renderer. It embeds the routing-free desktop Vite output in the native executable, validates the external BaseScene files, and exposes only those exact paths to WebView2 through Tauri's asset protocol.
+
+```mermaid
+flowchart LR
+  Exe[Omnipraxis.exe] --> Tauri[Tauri Host]
+  Splats[splats.spz] --> Validation[Native Validation]
+  Colliders[colliders.glb] --> Validation
+  Tauri --> Validation
+  Validation --> Scope[Dynamic Asset Protocol Scope]
+  Scope --> DesktopRoot[DesktopRoot]
+  DesktopRoot --> RuntimeApp[RuntimeApp without Convai]
+  RuntimeApp --> BaseScene[BaseScene]
+```
+
+Release builds resolve `splats.spz` and `colliders.glb` from the executable directory. Debug builds use `public/scenes/base/`, while `OMNIPRAXIS_SCENE_DIR` provides an explicit development override. The host checks file readability, the SPZ gzip signature, and GLB 2 header/length before returning protocol URLs. Loader or render failures are surfaced by the desktop error UI instead of intentionally falling back to embedded scene assets.
+
+The desktop renderer uses a dedicated Vite configuration with `base: './'`, `publicDir: false`, and `build/desktop` output. This prevents the web scene index, Convai integration, and complete public asset tree from becoming part of the desktop renderer. The current portable artifact depends on an installed Evergreen WebView2 runtime and is intentionally unsigned while feasibility is evaluated.
 
 ## Scene URL Routing
 
@@ -109,7 +133,7 @@ flowchart TD
 
 ## Platform Responsibilities
 
-The platform provides these reusable capabilities to every scene specification.
+The shared runtime provides these reusable capabilities to mounted scene specifications. Platform adapters can add environment-specific services around that shell.
 
 - `Canvas` and render-loop hosting through React Three Fiber.
 - `SparkRuntime` for `SparkRenderer` setup.
@@ -117,7 +141,7 @@ The platform provides these reusable capabilities to every scene specification.
 - `PlayerRuntime` for spawn lifecycle, centered interaction targeting, held items, latched interaction consumption, and registering the current interaction overlay button.
 - `PlayerController` for fixed-step movement, camera yaw/pitch, Rapier character-controller movement, and held-item mounting.
 - `UIRuntime` for screen tint, top-center screen messages, reticle DOM overlay rendering, and generic keyed overlay buttons.
-- `ConvaiRuntime` for the stock Convai widget overlay.
+- The web `App` adds `ConvaiRuntime` for the stock Convai widget overlay; the desktop adapter intentionally omits it.
 - `GltfModel` for GLB loading, cloning, opacity, material feedback, interaction targeting, optional physics, and blocking behavior.
 - `SplatModel` for Spark splat loading and scene-scoped child Spark edit nodes.
 - `SplatEdit` for Spark SDF edit operations without scene code importing Spark internals.

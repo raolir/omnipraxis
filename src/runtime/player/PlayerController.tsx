@@ -11,7 +11,7 @@ import type { ReactNode } from 'react';
 
 const DEFAULT_MOVE_SPEED = 4;
 const DEFAULT_EYE_HEIGHT = 1.7;
-const PLAYER_RADIUS = 0.35;
+const PLAYER_RADIUS = 0.3;
 const PLAYER_HEIGHT = 1.8;
 const CHARACTER_OFFSET = 0.01;
 const GRAVITY = -9.81;

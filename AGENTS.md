@@ -14,8 +14,12 @@
 
 - This is a single Vite app, not a package monorepo; `pnpm-workspace.yaml` only allowlists the `unrs-resolver` install build script.
 - `docs/architecture.md` documents the platform/runtime boundaries and should stay in sync with meaningful architecture changes.
-- Runtime entry flow is `src/main.tsx` -> `src/App.tsx`; `App` should stay lean: R3F `Canvas`, `SparkRuntime`, `InputRuntime`, `ConvaiRuntime`, and `UIRuntime` wrapping Rapier `Physics` containing `PlayerRuntime` plus the active scene.
+- Runtime entry flow is `src/main.tsx` -> `src/SceneRouter.tsx` -> `src/App.tsx`; `SceneRouter` owns pathname selection and renders the DOM scene index/not-found pages outside R3F, while `App` stays lean: R3F `Canvas`, `SparkRuntime`, `InputRuntime`, `ConvaiRuntime`, and `UIRuntime` wrapping Rapier `Physics` containing `PlayerRuntime` plus the active scene.
+- Scene routes are declared in `src/scenes/sceneManifest.ts` and mapped to prop-free scene components in `src/scenes/sceneRegistry.ts`; route slugs use lowercase kebab-case and URLs are resolved relative to `import.meta.env.BASE_URL`.
+- The root route is a scene index. Its links use `history.pushState`, preserve the current query/hash, and `SceneRouter` handles browser Back/Forward through `popstate`; active scenes intentionally provide no navigation UI yet.
+- GitHub Pages currently receives only the root `index.html`, so nested scene paths work after client-side navigation but not as direct entry points or refresh targets. Future per-scene HTML shells should reuse the manifest and the existing initial-path resolver.
 - Scene content lives under `src/scenes/`; `CircuitBreakerScene` owns its background/lights, scene asset URLs, repair state, effect configs, and player spawn call.
+- Base scene assets live under `public/scenes/base/`; `BaseScene` loads `splats.spz` as a direct non-paged splat and uses the transparent collider model for physics and interaction blocking.
 - Circuit breaker splat/collider assets live under `public/scenes/circuit-breaker/`; GLB props live under `public/assets/`. Build URLs must use `import.meta.env.BASE_URL` because Vite `base` is `/omnipraxis/`.
 - Circuit breaker splats are a paged Spark LoD asset (`splats-lod.rad` plus `.radc` pages); do not replace them with direct `.spz` imports unless the scene/runtime design changes.
 - Large scene assets must stay in Git LFS; `.gitattributes` tracks `*.glb`, `*.splat`, `*.spz`, `*.ply`, `*.rad`, and `*.radc` as LFS objects.

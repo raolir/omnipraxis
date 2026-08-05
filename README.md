@@ -63,6 +63,17 @@ Start the development server:
 pnpm dev
 ```
 
+## Scenes
+
+The root application route displays the available scene index. The current routes are:
+
+- `/omnipraxis/base` for the base splat environment.
+- `/omnipraxis/circuit-breaker` for the circuit breaker training scene.
+
+Scene links use client-side history navigation and browser Back returns to the index. GitHub Pages currently serves only the root `index.html`, so nested scene routes are not yet direct-load or refresh entry points.
+
+To add a scene, create a prop-free scene component in `src/scenes/`, add its public slug and title to `sceneManifest.ts`, and map that slug to the component in `sceneRegistry.ts`. Public asset URLs must use `import.meta.env.BASE_URL`.
+
 ## Build
 
 Create a production build:

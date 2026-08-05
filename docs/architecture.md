@@ -9,11 +9,15 @@ The core architectural boundary is between the platform runtime and a scene spec
 
 ## Runtime Stack
 
-`App.tsx` composes the reusable runtime shell. A scene is mounted beneath the platform services it is allowed to consume.
+`SceneRouter.tsx` selects the root scene index, an unknown-route page, or a registered scene from the current pathname. `App.tsx` composes the reusable runtime shell for a selected scene, which is mounted beneath the platform services it is allowed to consume.
 
 ```mermaid
 flowchart TD
-  App[App.tsx] --> Canvas[R3F Canvas]
+  Main[main.tsx] --> Router[SceneRouter]
+  Router --> Index[DOM Scene Index]
+  Router --> NotFound[DOM Not-Found Page]
+  Router --> App[App.tsx]
+  App --> Canvas[R3F Canvas]
 
   Canvas --> SparkRuntime[SparkRuntime]
   Canvas --> InputRuntime[InputRuntime]
@@ -25,6 +29,25 @@ flowchart TD
   Physics --> PlayerRuntime[PlayerRuntime]
   PlayerRuntime --> Scene[Scene Specification]
 ```
+
+## Scene URL Routing
+
+Scene routing is a platform concern outside the R3F runtime. `sceneManifest.ts` defines stable public slugs and display metadata without importing React, while `sceneRegistry.ts` maps every slug to a prop-free scene component. `sceneRoute.ts` strips `import.meta.env.BASE_URL`, resolves the initial pathname, and rejects unknown or nested paths.
+
+```mermaid
+flowchart LR
+  Pathname[window.location.pathname] --> Resolver[Scene Route Resolver]
+  Manifest[Scene Manifest] --> Resolver
+  Registry[Scene Component Registry] --> Resolver
+  Resolver --> Index[Scene Index]
+  Resolver --> NotFound[Not Found]
+  Resolver --> ActiveScene[Active Scene]
+  ActiveScene --> App[Runtime App]
+```
+
+The root `/omnipraxis/` route renders a DOM scene index outside the Canvas. Scene links preserve the current query string and hash, call `history.pushState`, and update the selected route without requesting another document. `SceneRouter` listens for `popstate` so browser Back and Forward restore the corresponding route. The runtime `App` is keyed by scene slug, ensuring that player, physics, UI, input-device, Convai, and scene-local state do not leak between active scene sessions.
+
+GitHub Pages currently serves only the root `index.html` and does not rewrite arbitrary paths to that shell. Consequently, a nested scene URL works after navigation from the loaded scene index, but directly loading or refreshing that URL returns a Pages 404. A future build step can use the React-free manifest to emit identical processed HTML shells at each registered scene path; the initial-path resolver already supports those direct entries without further runtime changes.
 
 ## Scene Authoring API Surface
 
@@ -104,6 +127,7 @@ The platform provides these reusable capabilities to every scene specification.
 
 A scene specification provides authored content and scene-specific logic.
 
+- A prop-free scene component in its own file under `src/scenes/`, registered through the scene manifest and component registry.
 - Asset URLs using `import.meta.env.BASE_URL` where assets are loaded from public paths.
 - Component composition using platform primitives.
 - Spatial placement through positions, rotations, scales, and visibility/opacity controls.

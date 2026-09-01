@@ -32,12 +32,12 @@
 - `GltfModel` interactions are `PlayerInteraction` objects with mandatory `{ label, action }`; select the whole interaction object for each scene state instead of branching inside one action when labels/actions differ.
 - Spark internals (`@sparkjsdev/spark`, `SplatMesh`) are isolated under `src/runtime/spark/`; scenes should use `SplatModel` instead of importing Spark directly.
 - `SplatModel` reports initialized after its mounted `SplatMesh.initialized` promise resolves.
-- Player code lives under `src/runtime/player/`; scenes call `usePlayer().spawn(position, yaw?, pitch?)`, and `PlayerRuntime` keeps the single `PlayerController` disabled until spawn is applied.
+- Player code lives under `src/runtime/player/`; scenes call `usePlayer().spawn(position, yaw?, pitch?)`, read `idle`, and can sample orientation through `getOrientation()`. `PlayerRuntime` keeps the single `PlayerController` disabled until spawn is applied.
 - `PlayerRuntime` owns centered interaction targeting, latched interaction consumption, held items, and registering the current interaction as a generic UI overlay button; it should not render DOM UI directly.
 - `UIRuntime` owns the separate DOM overlay root, reticle, screen tint/message feedback, and generic keyed overlay buttons (`setOverlayButton(id, button | null)`) with UI-owned placement/styling.
 - DOM UI inside the R3F tree must not return raw `<div>` elements; UI overlays create separate React DOM roots and return `null` to R3F to avoid `Div is not part of the THREE namespace` errors.
 - Carried items are attached under the player's yaw node via `setHeldItem`; pass local zero transforms for held models unless intentionally offsetting them.
-- Input code lives under `src/runtime/input/`; devices translate hardware state into the singleton `inputStore` through semantic position/orientation channels with absolute, delta, and velocity modalities. Velocities are persistent controls aggregated across devices, while resolved deltas are applied and cleared by the first eligible fixed physics step.
+- Input code lives under `src/runtime/input/`; each device writes to its own semantic input state, and composite sources resolve user input plus scene-registered automatic input into the shared player input. Position and orientation expose delta and velocity modalities; velocities persist, while resolved deltas are applied and cleared by the first eligible fixed physics step.
 - The standard-mapped gamepad device is polled by `InputRuntime` before player consumers. Its left stick provides position velocity, right stick provides orientation velocity, L1 contributes held run state, and the rising edge of A/Cross requests interaction; time integration belongs to `PlayerController`, not the device.
 - Touch input supports a transient lower-left floating joystick for movement and unclaimed touch drags for look; interaction touch is provided by the player-owned generic overlay button, not by `TouchInputDevice`.
 

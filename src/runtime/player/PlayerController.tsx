@@ -5,6 +5,7 @@ import * as THREE from 'three';
 
 import { inputStore } from '../input/InputStore';
 
+import type { PlayerOrientation } from './PlayerContext';
 import type { RapierCollider, RapierRigidBody } from '@react-three/rapier';
 import type { ReactNode } from 'react';
 
@@ -30,6 +31,7 @@ type PlayerControllerProps = {
   eyeHeight?: number;
   spawnRequest?: PlayerSpawnRequest | null;
   onSpawnApplied?: () => void;
+  onOrientationChange?: (orientation: PlayerOrientation) => void;
   heldItem?: ReactNode;
   physicsTimeStep: number;
 };
@@ -48,6 +50,7 @@ export const PlayerController = ({
   eyeHeight = DEFAULT_EYE_HEIGHT,
   spawnRequest = null,
   onSpawnApplied,
+  onOrientationChange,
   heldItem,
   physicsTimeStep,
 }: PlayerControllerProps) => {
@@ -100,10 +103,11 @@ export const PlayerController = ({
 
     yawNode.rotation.y = yawRef.current;
     pitchNode.rotation.x = pitchRef.current;
+    onOrientationChange?.({ yaw: yawRef.current, pitch: pitchRef.current });
     rigidBody.setTranslation(translation, true);
     rigidBody.setNextKinematicTranslation(translation);
     onSpawnApplied?.();
-  }, [onSpawnApplied, spawnRequest]);
+  }, [onOrientationChange, onSpawnApplied, spawnRequest]);
 
   useEffect(() => {
     const characterController = world.createCharacterController(CHARACTER_OFFSET);
@@ -154,6 +158,7 @@ export const PlayerController = ({
 
     yawNode.rotation.y = yawRef.current;
     pitchNode.rotation.x = pitchRef.current;
+    onOrientationChange?.({ yaw: yawRef.current, pitch: pitchRef.current });
     inputStore.resetOrientationDelta();
 
     const horizontalMovement = horizontalMovementRef.current;

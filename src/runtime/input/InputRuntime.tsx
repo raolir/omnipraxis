@@ -5,7 +5,7 @@ import { GamepadInputDevice } from './devices/GamepadInputDevice';
 import { KeyboardInputDevice } from './devices/KeyboardInputDevice';
 import { MouseInputDevice } from './devices/MouseInputDevice';
 import { TouchInputDevice } from './devices/TouchInputDevice';
-import { inputStore } from './InputStore';
+import { inputStore, InputStore, userInput } from './InputStore';
 
 import type { InputDevice } from './InputDevice';
 
@@ -21,18 +21,23 @@ export const InputRuntime = () => {
     ],
     [],
   );
+  const deviceInputs = useMemo(() => devices.map(() => new InputStore()), [devices]);
 
   useFrame(() => {
     for (const device of devices) {
       device.poll?.();
     }
+
+    inputStore.resolve();
   }, -2);
 
   useEffect(() => {
     inputStore.reset();
 
-    for (const device of devices) {
-      device.initialize(inputStore, gl.domElement);
+    const removeInputs = deviceInputs.map((input) => userInput.addSource(input));
+
+    for (const [index, device] of devices.entries()) {
+      device.initialize(deviceInputs[index], gl.domElement);
     }
 
     return () => {
@@ -40,9 +45,13 @@ export const InputRuntime = () => {
         device.dispose();
       }
 
+      for (const removeInput of removeInputs) {
+        removeInput();
+      }
+
       inputStore.reset();
     };
-  }, [devices, gl]);
+  }, [deviceInputs, devices, gl]);
 
   return null;
 };

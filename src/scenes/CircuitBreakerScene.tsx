@@ -1,6 +1,9 @@
-import { useEffect, useState } from 'react';
+import { useFrame } from '@react-three/fiber';
+import { useEffect, useRef, useState } from 'react';
+import * as THREE from 'three';
 
 import { GltfModel } from '../runtime/assets/GltfModel';
+import { useAutomaticInput } from '../runtime/input/useAutomaticInput';
 import { usePlayer } from '../runtime/player/PlayerContext';
 import { ParticleEmitter } from '../runtime/spark/ParticleEmitter';
 import { SplatEdit } from '../runtime/spark/SplatEdit';
@@ -16,6 +19,11 @@ const CIRCUIT_BREAKER_SET_URL = `${import.meta.env.BASE_URL}assets/circuit-break
 const BOX_URL = `${import.meta.env.BASE_URL}assets/box.glb`;
 
 const PLAYER_SPAWN_POSITION = [0, 0, 0] as const;
+const AUTOMATIC_YAW_INPUT_SPEED = 0.04;
+const AUTOMATIC_PITCH_AMPLITUDE = THREE.MathUtils.degToRad(3);
+const AUTOMATIC_PITCH_PERIOD = 5;
+const AUTOMATIC_PITCH_RESPONSE = 4;
+const AUTOMATIC_MAX_PITCH_SPEED = THREE.MathUtils.degToRad(15);
 
 type RepairStatus = 'start' | 'overloaded' | 'removed' | 'collected' | 'complete';
 
@@ -48,9 +56,11 @@ const burntBreakerFlameProps = {
 } as const;
 
 export const CircuitBreakerScene = () => {
-  const { spawn, setHeldItem } = usePlayer();
+  const { spawn, setHeldItem, idle, getOrientation } = usePlayer();
+  const automaticInput = useAutomaticInput();
   const { showScreenFeedback } = useUI();
   const [repairStatus, setRepairStatus] = useState<RepairStatus>('start');
+  const automaticPitchPhaseRef = useRef(0);
 
   const powerOutage =
     repairStatus === 'overloaded' || repairStatus === 'removed' || repairStatus === 'collected';
@@ -60,6 +70,31 @@ export const CircuitBreakerScene = () => {
 
   const showTrainingCompleteFeedback = () =>
     showScreenFeedback('rgb(0 180 80 / 0.35)', 'Training complete', 'rgb(80 255 150)', 1.5);
+
+  useFrame((_state, delta) => {
+    if (!idle) {
+      automaticInput.setOrientationVelocity(0, 0, 0);
+
+      return;
+    }
+
+    automaticPitchPhaseRef.current =
+      (automaticPitchPhaseRef.current + (Math.PI * 2 * delta) / AUTOMATIC_PITCH_PERIOD) %
+      (Math.PI * 2);
+
+    const targetPitch = AUTOMATIC_PITCH_AMPLITUDE * Math.sin(automaticPitchPhaseRef.current);
+    const pitchError = targetPitch - getOrientation().pitch;
+    const responsivePitchStep = pitchError * (1 - Math.exp(-AUTOMATIC_PITCH_RESPONSE * delta));
+    const maximumPitchStep = AUTOMATIC_MAX_PITCH_SPEED * delta;
+    const pitchStep = THREE.MathUtils.clamp(
+      responsivePitchStep,
+      -maximumPitchStep,
+      maximumPitchStep,
+    );
+
+    automaticInput.addOrientationDelta(pitchStep, 0, 0);
+    automaticInput.setOrientationVelocity(0, AUTOMATIC_YAW_INPUT_SPEED, 0);
+  });
 
   useEffect(() => {
     if (repairStatus !== 'collected') {

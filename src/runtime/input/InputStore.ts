@@ -4,20 +4,26 @@ export type InputVector3 = {
   z: number;
 };
 
-export type InputQuaternion = InputVector3 & {
-  w: number;
-};
-
 type PositionInput = {
-  absolute: InputVector3 | null;
   delta: InputVector3;
   velocity: InputVector3;
 };
 
 type OrientationInput = {
-  absolute: InputQuaternion | null;
   delta: InputVector3;
   velocity: InputVector3;
+};
+
+export type InputSource = {
+  readonly position: PositionInput;
+  readonly orientation: OrientationInput;
+  readonly run: boolean;
+  readonly interact: boolean;
+  resolve: () => void;
+  clearInteract: () => void;
+  resetPositionDelta: () => void;
+  resetOrientationDelta: () => void;
+  reset: () => void;
 };
 
 const createVector3 = (): InputVector3 => ({ x: 0, y: 0, z: 0 });
@@ -28,15 +34,13 @@ const resetVector3 = (vector: InputVector3): void => {
   vector.z = 0;
 };
 
-export class InputStore {
+export class InputStore implements InputSource {
   readonly position: PositionInput = {
-    absolute: null,
     delta: createVector3(),
     velocity: createVector3(),
   };
 
   readonly orientation: OrientationInput = {
-    absolute: null,
     delta: createVector3(),
     velocity: createVector3(),
   };
@@ -49,9 +53,7 @@ export class InputStore {
     return this.runContributions > 0;
   }
 
-  setAbsolutePosition(position: Readonly<InputVector3> | null): void {
-    this.position.absolute = position ? { ...position } : null;
-  }
+  resolve(): void {}
 
   addPositionDelta(x: number, y: number, z: number): void {
     this.position.delta.x += x;
@@ -65,8 +67,10 @@ export class InputStore {
     this.position.velocity.z += z;
   }
 
-  setAbsoluteOrientation(orientation: Readonly<InputQuaternion> | null): void {
-    this.orientation.absolute = orientation ? { ...orientation } : null;
+  setPositionVelocity(x: number, y: number, z: number): void {
+    this.position.velocity.x = x;
+    this.position.velocity.y = y;
+    this.position.velocity.z = z;
   }
 
   addOrientationDelta(x: number, y: number, z: number): void {
@@ -81,8 +85,18 @@ export class InputStore {
     this.orientation.velocity.z += z;
   }
 
+  setOrientationVelocity(x: number, y: number, z: number): void {
+    this.orientation.velocity.x = x;
+    this.orientation.velocity.y = y;
+    this.orientation.velocity.z = z;
+  }
+
   addRunContribution(contribution: number): void {
     this.runContributions += contribution;
+  }
+
+  setRun(run: boolean): void {
+    this.runContributions = run ? 1 : 0;
   }
 
   triggerInteract(): void {
@@ -102,10 +116,8 @@ export class InputStore {
   }
 
   reset(): void {
-    this.position.absolute = null;
     resetVector3(this.position.delta);
     resetVector3(this.position.velocity);
-    this.orientation.absolute = null;
     resetVector3(this.orientation.delta);
     resetVector3(this.orientation.velocity);
     this.runContributions = 0;
@@ -113,4 +125,105 @@ export class InputStore {
   }
 }
 
-export const inputStore = new InputStore();
+export class CompositeInputSource implements InputSource {
+  readonly position: PositionInput = {
+    delta: createVector3(),
+    velocity: createVector3(),
+  };
+
+  readonly orientation: OrientationInput = {
+    delta: createVector3(),
+    velocity: createVector3(),
+  };
+
+  run = false;
+
+  interact = false;
+
+  private readonly sources = new Set<InputSource>();
+
+  constructor(sources: readonly InputSource[] = []) {
+    for (const source of sources) {
+      this.sources.add(source);
+    }
+  }
+
+  addSource(source: InputSource): () => void {
+    this.sources.add(source);
+
+    return () => {
+      this.sources.delete(source);
+      this.resolve();
+    };
+  }
+
+  resolve(): void {
+    this.resetResolvedState();
+
+    for (const source of this.sources) {
+      source.resolve();
+      this.position.delta.x += source.position.delta.x;
+      this.position.delta.y += source.position.delta.y;
+      this.position.delta.z += source.position.delta.z;
+      this.position.velocity.x += source.position.velocity.x;
+      this.position.velocity.y += source.position.velocity.y;
+      this.position.velocity.z += source.position.velocity.z;
+      this.orientation.delta.x += source.orientation.delta.x;
+      this.orientation.delta.y += source.orientation.delta.y;
+      this.orientation.delta.z += source.orientation.delta.z;
+      this.orientation.velocity.x += source.orientation.velocity.x;
+      this.orientation.velocity.y += source.orientation.velocity.y;
+      this.orientation.velocity.z += source.orientation.velocity.z;
+      this.run ||= source.run;
+      this.interact ||= source.interact;
+    }
+  }
+
+  clearInteract(): void {
+    for (const source of this.sources) {
+      source.clearInteract();
+    }
+
+    this.interact = false;
+  }
+
+  resetPositionDelta(): void {
+    for (const source of this.sources) {
+      source.resetPositionDelta();
+    }
+
+    resetVector3(this.position.delta);
+  }
+
+  resetOrientationDelta(): void {
+    for (const source of this.sources) {
+      source.resetOrientationDelta();
+    }
+
+    resetVector3(this.orientation.delta);
+  }
+
+  reset(): void {
+    for (const source of this.sources) {
+      source.reset();
+    }
+
+    this.resetResolvedState();
+  }
+
+  private resetResolvedState(): void {
+    resetVector3(this.position.delta);
+    resetVector3(this.position.velocity);
+    resetVector3(this.orientation.delta);
+    resetVector3(this.orientation.velocity);
+    this.run = false;
+    this.interact = false;
+  }
+}
+
+export const userInput = new CompositeInputSource();
+export const automaticInput = new CompositeInputSource();
+export const inputStore = new CompositeInputSource([userInput, automaticInput]);
+export const playerInteractionInput = new InputStore();
+
+userInput.addSource(playerInteractionInput);

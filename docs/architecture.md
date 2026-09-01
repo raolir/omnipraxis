@@ -86,10 +86,15 @@ flowchart LR
   Scene --> SplatEdit[SplatEdit]
   Scene --> ParticleEmitter[ParticleEmitter]
   Scene --> PlayerAPI[usePlayer]
+  Scene --> AutomaticInputAPI[useAutomaticInput]
   Scene --> UIAPI[useUI]
 
   PlayerAPI --> Spawn[spawn]
   PlayerAPI --> HeldItem[setHeldItem]
+  PlayerAPI --> Idle[read idle]
+  PlayerAPI --> Orientation[read orientation snapshot]
+
+  AutomaticInputAPI --> AutomaticInput[scene-owned semantic input]
 
   UIAPI --> Feedback[showScreenFeedback]
 
@@ -137,7 +142,7 @@ The shared runtime provides these reusable capabilities to mounted scene specifi
 
 - `Canvas` and render-loop hosting through React Three Fiber.
 - `SparkRuntime` for `SparkRenderer` setup.
-- `InputRuntime` for keyboard, mouse, touch, a frame-polled standard gamepad, pointer lock, and input-store mutation through semantic methods.
+- `InputRuntime` for keyboard, mouse, touch, a frame-polled standard gamepad, pointer lock, and resolving composable semantic input sources.
 - `PlayerRuntime` for spawn lifecycle, centered interaction targeting, held items, fixed-step latched interaction consumption, and registering the current interaction overlay button.
 - `PlayerController` for fixed-step walk/run movement and camera yaw/pitch, Rapier character-controller movement, and held-item mounting.
 - `UIRuntime` for screen tint, top-center screen messages, reticle DOM overlay rendering, and generic keyed overlay buttons.
@@ -159,6 +164,8 @@ A scene specification provides authored content and scene-specific logic.
 - Labeled `PlayerInteraction` objects passed into platform components.
 - Effect parameters for particles, splat edits, lights, and other scene-owned effects.
 - Calls into `usePlayer` for player spawning and held-item state.
+- Reads player idle state and orientation snapshots when scene-local behavior needs them.
+- Registers scene-local automatic input sources through `useAutomaticInput`.
 - Calls into `useUI` for screen feedback when scene-local logic needs it.
 
 ## Scene Specification Should Not Own
@@ -186,23 +193,25 @@ sequenceDiagram
   participant Mouse as MouseInputDevice
   participant Touch as TouchInputDevice
   participant Gamepad as GamepadInputDevice
-  participant Store as InputStore
+  participant UserInput as userInput composite
+  participant CombinedInput as combinedInput composite
   participant Player as PlayerRuntime
   participant UI as UIRuntime
   participant Model as GltfModel
   participant Scene as Scene Specification
 
-  Keyboard->>Store: add position velocity and trigger interact
-  Mouse->>Store: add orientation deltas
-  Touch->>Store: add position velocity and orientation deltas
-  Gamepad->>Store: poll velocities, run state, and interact edge
+  Keyboard->>UserInput: position velocity and interact latch
+  Mouse->>UserInput: orientation deltas
+  Touch->>UserInput: position velocity and orientation deltas
+  Gamepad->>UserInput: velocities, run state, and interact edge
+  UserInput->>CombinedInput: resolve cached user input
   Player->>Player: center R3F raycaster
   Player->>Model: R3F pointer events
   Model->>Player: set or clear current labeled interaction
   Player->>UI: register or clear player-interaction overlay button
-  Store->>Player: fixed-step latched interact requested
+  CombinedInput->>Player: fixed-step latched interact requested
   UI->>Player: overlay button pressed
-  Player->>Store: trigger latched interact
+  Player->>UserInput: trigger latched interact
   Player->>Scene: invoke current scene action
 ```
 
@@ -254,17 +263,20 @@ flowchart LR
 
 ## Input And Player Boundary
 
-Input devices translate device events into a shared semantic store. Player systems consume that store. Scenes interact with the player through a narrow context API.
+Input devices write to independent semantic states. Composite sources resolve the user-device states into `userInput`, scene-owned automatic states into `automaticInput`, and those two aggregates into the final player input. Player systems consume the final aggregate, while idle detection reads the cached user aggregate. Scenes interact with the player and automatic-input registration through narrow APIs.
 
 ```mermaid
 flowchart TD
-  KeyboardDevice[KeyboardInputDevice] --> InputStore
-  MouseDevice[MouseInputDevice] --> InputStore
-  TouchDevice[TouchInputDevice] --> InputStore
-  GamepadDevice[GamepadInputDevice] --> InputStore
+  KeyboardDevice[KeyboardInputDevice] --> UserInput
+  MouseDevice[MouseInputDevice] --> UserInput
+  TouchDevice[TouchInputDevice] --> UserInput
+  GamepadDevice[GamepadInputDevice] --> UserInput
+  SceneAutomatic[Scene Automatic Inputs] --> AutomaticInput
 
-  InputStore --> PlayerController
-  InputStore --> PlayerRuntime
+  UserInput --> CombinedInput
+  AutomaticInput --> CombinedInput
+  CombinedInput --> PlayerController
+  UserInput --> PlayerRuntime
 
   PlayerController --> Movement[fixed-step movement]
   PlayerController --> Camera[yaw and pitch camera]
@@ -272,13 +284,14 @@ flowchart TD
   PlayerRuntime --> InteractionButton[player-interaction overlay button]
   PlayerRuntime --> HeldItem[held item mount]
 
-  Scene[Scene Specification] -->|usePlayer.spawn| PlayerRuntime
+  Scene[Scene Specification] -->|usePlayer| PlayerRuntime
+  Scene -->|useAutomaticInput| SceneAutomatic
   Scene -->|usePlayer.setHeldItem| PlayerRuntime
 ```
 
-`InputStore` remains device-agnostic. Position and orientation each expose absolute, delta, and velocity modalities. Absolute values are the latest resolved pose values, deltas are resolved spatial displacements consumed once, and velocities are persistent control values integrated by the owning runtime. The current non-XR player consumes position and pitch/yaw orientation input exclusively during fixed physics steps. Absolute position and orientation, vertical position velocity, and roll orientation input are represented for future runtimes but are not applied by the current yaw/pitch player hierarchy.
+Input states remain device-agnostic. Position and orientation each expose delta and velocity modalities. Deltas are resolved spatial displacements consumed once, while velocities are persistent controls integrated by the owning runtime. The current non-XR player consumes position and pitch/yaw orientation input during fixed physics steps; vertical position velocity and roll orientation input remain unused by the current yaw/pitch player hierarchy.
 
-Persistent velocity is additive across devices. Each device provides normalized controls and applies only the difference from its previous contribution so releasing, disconnecting, or disposing one device does not erase another device's input. The player normalizes combined horizontal velocity when its magnitude exceeds one. Position velocity is scaled by walk or run speed and the fixed physics timestep. Orientation velocity is scaled by turn speed and the same fixed timestep, while orientation deltas have already been resolved by device sensitivity and are not speed-scaled. Pending deltas are applied and cleared by the first eligible physics step; velocities and held run state are read by every step. Absolute values and velocities remain until replaced or reset.
+Composite inputs add deltas and velocities and combine run and interaction state. `InputRuntime` resolves the complete composite once after polling devices, so the cached user aggregate supports idle detection without another device traversal. The player normalizes combined horizontal velocity when its magnitude exceeds one. Position velocity is scaled by walk or run speed and the fixed physics timestep. Orientation velocity is scaled by turn speed and the same fixed timestep, while orientation deltas have already been resolved by their source and are not speed-scaled. Pending deltas are applied and cleared by the first eligible physics step; velocities and held run state persist until their sources change or reset.
 
 Keyboard WASD provides position velocity, either Shift key contributes held run state, and non-repeated `KeyE` requests interaction. Mouse movement and unclaimed touch drags provide orientation deltas, while touch movement uses a transient lower-left floating joystick. Touch interaction is performed through the player-owned overlay button rendered by `UIRuntime`, not by `TouchInputDevice`.
 
@@ -293,7 +306,15 @@ Keyboard WASD provides position velocity, either Shift key contributes held run 
 ```ts
 spawn(position, yaw?, pitch?)
 setHeldItem(heldItem)
+idle
+getOrientation()
 ```
+
+`idle` becomes true after five seconds without resolved user input after spawning. Automatic input does not affect it. `getOrientation()` returns the current yaw and pitch without publishing per-frame React state.
+
+### `useAutomaticInput`
+
+`useAutomaticInput` registers an independent scene-owned input state in the automatic-input aggregate. It exposes the same delta, velocity, run, and interaction mutations used by device input. Multiple automatic sources combine, and unmounting a source removes its contribution.
 
 The player runtime also exposes lower-level interaction target methods through context for platform components such as `GltfModel`. Scene specifications generally provide labeled interactions to `GltfModel` instead of calling those methods directly.
 

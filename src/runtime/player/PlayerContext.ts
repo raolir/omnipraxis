@@ -4,6 +4,11 @@ import type { ReactNode } from 'react';
 
 type PlayerPosition = readonly [number, number, number];
 
+export type PlayerOrientation = {
+  yaw: number;
+  pitch: number;
+};
+
 export type PlayerInteraction = {
   label: string;
   action: () => void;
@@ -11,6 +16,8 @@ export type PlayerInteraction = {
 
 export type PlayerRuntimeContextValue = {
   spawn: (position: PlayerPosition, yaw?: number, pitch?: number) => void;
+  idle: boolean;
+  getOrientation: () => PlayerOrientation;
   interactionTargetId: string | null;
   setInteractionTarget: (id: string, interaction: PlayerInteraction) => void;
   clearInteractionTarget: (id: string) => void;

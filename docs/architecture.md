@@ -137,9 +137,9 @@ The shared runtime provides these reusable capabilities to mounted scene specifi
 
 - `Canvas` and render-loop hosting through React Three Fiber.
 - `SparkRuntime` for `SparkRenderer` setup.
-- `InputRuntime` for keyboard, mouse, touch, pointer lock, and input-store mutation through semantic methods.
-- `PlayerRuntime` for spawn lifecycle, centered interaction targeting, held items, latched interaction consumption, and registering the current interaction overlay button.
-- `PlayerController` for fixed-step movement, camera yaw/pitch, Rapier character-controller movement, and held-item mounting.
+- `InputRuntime` for keyboard, mouse, touch, a frame-polled standard gamepad, pointer lock, and input-store mutation through semantic methods.
+- `PlayerRuntime` for spawn lifecycle, centered interaction targeting, held items, fixed-step latched interaction consumption, and registering the current interaction overlay button.
+- `PlayerController` for fixed-step walk/run movement and camera yaw/pitch, Rapier character-controller movement, and held-item mounting.
 - `UIRuntime` for screen tint, top-center screen messages, reticle DOM overlay rendering, and generic keyed overlay buttons.
 - The web `App` adds `ConvaiRuntime` for the stock Convai widget overlay; the desktop adapter intentionally omits it.
 - `GltfModel` for GLB loading, cloning, opacity, material feedback, interaction targeting, optional physics, and blocking behavior.
@@ -165,7 +165,7 @@ A scene specification provides authored content and scene-specific logic.
 
 These responsibilities should remain in the platform runtime unless the platform API changes intentionally.
 
-- Low-level keyboard, mouse, or touch listeners.
+- Low-level keyboard, mouse, touch, or gamepad handling.
 - Pointer lock setup.
 - Player movement or camera yaw/pitch implementation.
 - Centered raycaster computation.
@@ -185,20 +185,22 @@ sequenceDiagram
   participant Keyboard as KeyboardInputDevice
   participant Mouse as MouseInputDevice
   participant Touch as TouchInputDevice
+  participant Gamepad as GamepadInputDevice
   participant Store as InputStore
   participant Player as PlayerRuntime
   participant UI as UIRuntime
   participant Model as GltfModel
   participant Scene as Scene Specification
 
-  Keyboard->>Store: add movement and trigger interact
-  Mouse->>Store: add look deltas
-  Touch->>Store: add joystick movement and look deltas
+  Keyboard->>Store: add position velocity and trigger interact
+  Mouse->>Store: add orientation deltas
+  Touch->>Store: add position velocity and orientation deltas
+  Gamepad->>Store: poll velocities, run state, and interact edge
   Player->>Player: center R3F raycaster
   Player->>Model: R3F pointer events
   Model->>Player: set or clear current labeled interaction
   Player->>UI: register or clear player-interaction overlay button
-  Store->>Player: latched interact requested
+  Store->>Player: fixed-step latched interact requested
   UI->>Player: overlay button pressed
   Player->>Store: trigger latched interact
   Player->>Scene: invoke current scene action
@@ -259,6 +261,7 @@ flowchart TD
   KeyboardDevice[KeyboardInputDevice] --> InputStore
   MouseDevice[MouseInputDevice] --> InputStore
   TouchDevice[TouchInputDevice] --> InputStore
+  GamepadDevice[GamepadInputDevice] --> InputStore
 
   InputStore --> PlayerController
   InputStore --> PlayerRuntime
@@ -273,9 +276,13 @@ flowchart TD
   Scene -->|usePlayer.setHeldItem| PlayerRuntime
 ```
 
-`InputStore` remains device-agnostic. Devices add their current movement contribution by applying deltas to aggregate movement, add frame-based look deltas, and only request interaction with a latched `triggerInteract()` signal. Interaction clearing happens in `PlayerRuntime` after the request is consumed.
+`InputStore` remains device-agnostic. Position and orientation each expose absolute, delta, and velocity modalities. Absolute values are the latest resolved pose values, deltas are resolved spatial displacements consumed once, and velocities are persistent control values integrated by the owning runtime. The current non-XR player consumes position and pitch/yaw orientation input exclusively during fixed physics steps. Absolute position and orientation, vertical position velocity, and roll orientation input are represented for future runtimes but are not applied by the current yaw/pitch player hierarchy.
 
-Keyboard `KeyE` ignores repeated keydown events, so holding the key does not repeatedly trigger interactions. Touch movement uses a transient lower-left floating joystick, and unclaimed touch drags add look deltas. Touch interaction is performed through the player-owned overlay button rendered by `UIRuntime`, not by `TouchInputDevice`.
+Persistent velocity is additive across devices. Each device provides normalized controls and applies only the difference from its previous contribution so releasing, disconnecting, or disposing one device does not erase another device's input. The player normalizes combined horizontal velocity when its magnitude exceeds one. Position velocity is scaled by walk or run speed and the fixed physics timestep. Orientation velocity is scaled by turn speed and the same fixed timestep, while orientation deltas have already been resolved by device sensitivity and are not speed-scaled. Pending deltas are applied and cleared by the first eligible physics step; velocities and held run state are read by every step. Absolute values and velocities remain until replaced or reset.
+
+Keyboard WASD provides position velocity, either Shift key contributes held run state, and non-repeated `KeyE` requests interaction. Mouse movement and unclaimed touch drags provide orientation deltas, while touch movement uses a transient lower-left floating joystick. Touch interaction is performed through the player-owned overlay button rendered by `UIRuntime`, not by `TouchInputDevice`.
+
+`GamepadInputDevice` polls `navigator.getGamepads()` before physics consumers. It selects one standard-mapped controller, applies radial deadzones to both sticks, maps the left stick to position velocity, maps the right stick to orientation velocity, maps L1 to held run state, and maps the rising edge of A/Cross to interaction. Its sampled velocities do not depend on render delta; `PlayerController` integrates them during fixed physics steps. Disconnect, focus loss, hidden visibility, and disposal remove persistent controller contributions, and newly selected or resumed controllers baseline the interaction button to avoid an accidental action from a held button.
 
 ## Platform API Summary
 

@@ -26,9 +26,9 @@ export class TouchInputDevice implements InputDevice {
 
   private joystickOriginY = 0;
 
-  private appliedMoveX = 0;
+  private appliedVelocityX = 0;
 
-  private appliedMoveZ = 0;
+  private appliedVelocityZ = 0;
 
   private lookPointers = new Map<number, LookPointer>();
 
@@ -72,7 +72,11 @@ export class TouchInputDevice implements InputDevice {
     const deltaX = event.clientX - lookPointer.x;
     const deltaY = event.clientY - lookPointer.y;
 
-    this.store.addLook(-deltaX * TOUCH_LOOK_SENSITIVITY, -deltaY * TOUCH_LOOK_SENSITIVITY);
+    this.store.addOrientationDelta(
+      -deltaY * TOUCH_LOOK_SENSITIVITY,
+      -deltaX * TOUCH_LOOK_SENSITIVITY,
+      0,
+    );
     lookPointer.x = event.clientX;
     lookPointer.y = event.clientY;
   };
@@ -155,7 +159,7 @@ export class TouchInputDevice implements InputDevice {
     const clampedX = deltaX * scale;
     const clampedY = deltaY * scale;
 
-    this.applyMovement(clampedX / JOYSTICK_RADIUS, clampedY / JOYSTICK_RADIUS);
+    this.applyPositionVelocity(clampedX / JOYSTICK_RADIUS, clampedY / JOYSTICK_RADIUS);
 
     if (this.joystickKnob) {
       this.joystickKnob.style.transform = `translate(calc(-50% + ${clampedX}px), calc(-50% + ${clampedY}px))`;
@@ -187,10 +191,10 @@ export class TouchInputDevice implements InputDevice {
     this.joystickKnob = null;
   }
 
-  private applyMovement(moveX: number, moveZ: number): void {
-    this.store.addMovement(moveX - this.appliedMoveX, moveZ - this.appliedMoveZ);
-    this.appliedMoveX = moveX;
-    this.appliedMoveZ = moveZ;
+  private applyPositionVelocity(x: number, z: number): void {
+    this.store.addPositionVelocity(x - this.appliedVelocityX, 0, z - this.appliedVelocityZ);
+    this.appliedVelocityX = x;
+    this.appliedVelocityZ = z;
   }
 
   private isLowerLeftTouch(event: PointerEvent): boolean {
@@ -202,7 +206,7 @@ export class TouchInputDevice implements InputDevice {
   private clearPointer(pointerId: number): void {
     if (pointerId === this.joystickPointerId) {
       this.joystickPointerId = null;
-      this.applyMovement(0, 0);
+      this.applyPositionVelocity(0, 0);
       this.hideJoystick();
 
       return;
@@ -214,7 +218,7 @@ export class TouchInputDevice implements InputDevice {
   private clearAllPointers = (): void => {
     this.joystickPointerId = null;
     this.lookPointers.clear();
-    this.applyMovement(0, 0);
+    this.applyPositionVelocity(0, 0);
     this.hideJoystick();
   };
 

@@ -1,5 +1,4 @@
 import { PerspectiveCamera } from '@react-three/drei';
-import { useFrame } from '@react-three/fiber';
 import { CapsuleCollider, RigidBody, useBeforePhysicsStep, useRapier } from '@react-three/rapier';
 import { useEffect, useRef } from 'react';
 import * as THREE from 'three';
@@ -10,6 +9,8 @@ import type { RapierCollider, RapierRigidBody } from '@react-three/rapier';
 import type { ReactNode } from 'react';
 
 const DEFAULT_MOVE_SPEED = 4;
+const DEFAULT_RUN_SPEED = 7;
+const DEFAULT_TURN_SPEED = 2.5;
 const DEFAULT_EYE_HEIGHT = 1.7;
 const PLAYER_RADIUS = 0.3;
 const PLAYER_HEIGHT = 1.8;
@@ -24,6 +25,8 @@ const CARRIED_ITEM_ROTATION: [number, number, number] = [0, 0, 0];
 type PlayerControllerProps = {
   enabled?: boolean;
   moveSpeed?: number;
+  runSpeed?: number;
+  turnSpeed?: number;
   eyeHeight?: number;
   spawnRequest?: PlayerSpawnRequest | null;
   onSpawnApplied?: () => void;
@@ -40,6 +43,8 @@ type PlayerSpawnRequest = {
 export const PlayerController = ({
   enabled = true,
   moveSpeed = DEFAULT_MOVE_SPEED,
+  runSpeed = DEFAULT_RUN_SPEED,
+  turnSpeed = DEFAULT_TURN_SPEED,
   eyeHeight = DEFAULT_EYE_HEIGHT,
   spawnRequest = null,
   onSpawnApplied,
@@ -119,6 +124,9 @@ export const PlayerController = ({
 
   useBeforePhysicsStep(() => {
     if (!enabled) {
+      inputStore.resetPositionDelta();
+      inputStore.resetOrientationDelta();
+
       return;
     }
 
@@ -132,17 +140,36 @@ export const PlayerController = ({
       return;
     }
 
-    const horizontalMovement = horizontalMovementRef.current;
+    const orientationInput = inputStore.orientation;
 
-    horizontalMovement.set(inputStore.moveX, 0, inputStore.moveZ);
+    yawRef.current +=
+      orientationInput.delta.y + orientationInput.velocity.y * turnSpeed * physicsTimeStep;
+    pitchRef.current = THREE.MathUtils.clamp(
+      pitchRef.current +
+        orientationInput.delta.x +
+        orientationInput.velocity.x * turnSpeed * physicsTimeStep,
+      MIN_PITCH,
+      MAX_PITCH,
+    );
+
+    yawNode.rotation.y = yawRef.current;
+    pitchNode.rotation.x = pitchRef.current;
+    inputStore.resetOrientationDelta();
+
+    const horizontalMovement = horizontalMovementRef.current;
+    const positionInput = inputStore.position;
+    const movementSpeed = inputStore.run ? runSpeed : moveSpeed;
+
+    horizontalMovement.set(positionInput.velocity.x, 0, positionInput.velocity.z);
 
     if (horizontalMovement.lengthSq() > 1) {
       horizontalMovement.normalize();
     }
 
     horizontalMovement
-      .applyQuaternion(yawNode.quaternion)
-      .multiplyScalar(moveSpeed * physicsTimeStep);
+      .multiplyScalar(movementSpeed * physicsTimeStep)
+      .add(positionInput.delta)
+      .applyQuaternion(yawNode.quaternion);
 
     if (groundedRef.current) {
       verticalVelocityRef.current = 0;
@@ -154,11 +181,12 @@ export const PlayerController = ({
 
     desiredMovement.set(
       horizontalMovement.x,
-      verticalVelocityRef.current * physicsTimeStep,
+      horizontalMovement.y + verticalVelocityRef.current * physicsTimeStep,
       horizontalMovement.z,
     );
 
     characterController.computeColliderMovement(collider, desiredMovement);
+    inputStore.resetPositionDelta();
 
     const computedMovement = characterController.computedMovement();
     const translation = rigidBody.translation();
@@ -178,33 +206,6 @@ export const PlayerController = ({
       verticalVelocityRef.current = 0;
     }
   });
-
-  useFrame(() => {
-    if (!enabled) {
-      inputStore.resetFrameDeltas();
-
-      return;
-    }
-
-    const yawNode = yawNodeRef.current;
-    const pitchNode = pitchNodeRef.current;
-
-    if (!yawNode || !pitchNode) {
-      return;
-    }
-
-    yawRef.current += inputStore.deltaYaw;
-    pitchRef.current = THREE.MathUtils.clamp(
-      pitchRef.current + inputStore.deltaPitch,
-      MIN_PITCH,
-      MAX_PITCH,
-    );
-
-    yawNode.rotation.y = yawRef.current;
-    pitchNode.rotation.x = pitchRef.current;
-
-    inputStore.resetFrameDeltas();
-  }, -1);
 
   return (
     <RigidBody ref={rigidBodyRef} type="kinematicPosition" colliders={false} lockRotations>

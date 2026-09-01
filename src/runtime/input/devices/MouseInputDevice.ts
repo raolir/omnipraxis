@@ -13,7 +13,11 @@ export class MouseInputDevice implements InputDevice {
       return;
     }
 
-    this.store.addLook(-event.movementX * MOUSE_SENSITIVITY, -event.movementY * MOUSE_SENSITIVITY);
+    this.store.addOrientationDelta(
+      -event.movementY * MOUSE_SENSITIVITY,
+      -event.movementX * MOUSE_SENSITIVITY,
+      0,
+    );
   };
 
   private onPointerDown = async (event: PointerEvent): Promise<void> => {

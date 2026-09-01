@@ -1,4 +1,5 @@
 import { useFrame, useThree } from '@react-three/fiber';
+import { useBeforePhysicsStep } from '@react-three/rapier';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { PlayerRuntimeContext } from './PlayerContext';
@@ -58,7 +59,9 @@ export const PlayerRuntime = ({ children, physicsTimeStep }: PlayerRuntimeProps)
 
   useFrame(() => {
     events.update?.();
+  });
 
+  useBeforePhysicsStep(() => {
     if (!inputStore.interact) {
       return;
     }

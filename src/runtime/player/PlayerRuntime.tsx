@@ -31,7 +31,6 @@ type ActiveInteraction = {
 };
 
 const PLAYER_INTERACTION_BUTTON_ID = 'player-interaction';
-const PLAYER_IDLE_DELAY = 5;
 
 const hasVectorInput = ({ x, y, z }: { x: number; y: number; z: number }) =>
   x !== 0 || y !== 0 || z !== 0;
@@ -54,22 +53,11 @@ export const PlayerRuntime = ({ children, physicsTimeStep }: PlayerRuntimeProps)
   const [spawnRequest, setSpawnRequest] = useState<PlayerSpawnRequest | null>(null);
   const [activeInteraction, setActiveInteraction] = useState<ActiveInteraction | null>(null);
   const [heldItem, setHeldItem] = useState<ReactNode | null>(null);
-  const [idle, setIdle] = useState(false);
+  const [idleTime, setIdleTime] = useState(0);
 
   const activeInteractionRef = useRef<ActiveInteraction | null>(null);
-  const idleRef = useRef(false);
-  const idleElapsedRef = useRef(0);
   const orientationSnapshotRef = useRef({ yaw: 0, pitch: 0 });
   const interactionTargetId = activeInteraction?.id ?? null;
-
-  const updateIdle = useCallback((nextIdle: boolean) => {
-    if (idleRef.current === nextIdle) {
-      return;
-    }
-
-    idleRef.current = nextIdle;
-    setIdle(nextIdle);
-  }, []);
 
   useEffect(() => {
     const previousCompute = get().events.compute;
@@ -92,17 +80,12 @@ export const PlayerRuntime = ({ children, physicsTimeStep }: PlayerRuntimeProps)
 
   useFrame((_state, delta) => {
     if (!enabled || hasUserInput()) {
-      idleElapsedRef.current = 0;
-      updateIdle(false);
+      setIdleTime(0);
 
       return;
     }
 
-    idleElapsedRef.current += delta;
-
-    if (idleElapsedRef.current >= PLAYER_IDLE_DELAY) {
-      updateIdle(true);
-    }
+    setIdleTime((currentIdleTime) => currentIdleTime + delta);
   }, -1);
 
   useBeforePhysicsStep(() => {
@@ -137,22 +120,17 @@ export const PlayerRuntime = ({ children, physicsTimeStep }: PlayerRuntimeProps)
     };
   }, [setOverlayButton]);
 
-  const spawn = useCallback(
-    (position: readonly [number, number, number], yaw = 0, pitch = 0) => {
-      setEnabled(false);
-      idleElapsedRef.current = 0;
-      updateIdle(false);
-      setSpawnRequest({ position, yaw, pitch });
-    },
-    [updateIdle],
-  );
+  const spawn = useCallback((position: readonly [number, number, number], yaw = 0, pitch = 0) => {
+    setEnabled(false);
+    setIdleTime(0);
+    setSpawnRequest({ position, yaw, pitch });
+  }, []);
 
   const handleSpawnApplied = useCallback(() => {
     setSpawnRequest(null);
     setEnabled(true);
-    idleElapsedRef.current = 0;
-    updateIdle(false);
-  }, [updateIdle]);
+    setIdleTime(0);
+  }, []);
 
   const getOrientation = useCallback(() => ({ ...orientationSnapshotRef.current }), []);
 
@@ -190,7 +168,7 @@ export const PlayerRuntime = ({ children, physicsTimeStep }: PlayerRuntimeProps)
   const contextValue = useMemo<PlayerRuntimeContextValue>(
     () => ({
       spawn,
-      idle,
+      idleTime,
       getOrientation,
       interactionTargetId,
       setInteractionTarget,
@@ -202,7 +180,7 @@ export const PlayerRuntime = ({ children, physicsTimeStep }: PlayerRuntimeProps)
       clearCurrentInteractionTarget,
       clearInteractionTarget,
       getOrientation,
-      idle,
+      idleTime,
       interactionTargetId,
       setInteractionTarget,
       spawn,

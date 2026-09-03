@@ -19,6 +19,7 @@ const CIRCUIT_BREAKER_SET_URL = `${import.meta.env.BASE_URL}assets/circuit-break
 const BOX_URL = `${import.meta.env.BASE_URL}assets/box.glb`;
 
 const PLAYER_SPAWN_POSITION = [0, 0, 0] as const;
+const AUTOMATIC_INPUT_IDLE_DELAY = 5;
 const AUTOMATIC_YAW_INPUT_SPEED = 0.04;
 const AUTOMATIC_PITCH_AMPLITUDE = THREE.MathUtils.degToRad(3);
 const AUTOMATIC_PITCH_PERIOD = 5;
@@ -56,7 +57,7 @@ const burntBreakerFlameProps = {
 } as const;
 
 export const CircuitBreakerScene = () => {
-  const { spawn, setHeldItem, idle, getOrientation } = usePlayer();
+  const { spawn, setHeldItem, idleTime, getOrientation } = usePlayer();
   const automaticInput = useAutomaticInput();
   const { showScreenFeedback } = useUI();
   const [repairStatus, setRepairStatus] = useState<RepairStatus>('start');
@@ -72,7 +73,7 @@ export const CircuitBreakerScene = () => {
     showScreenFeedback('rgb(0 180 80 / 0.35)', 'Training complete', 'rgb(80 255 150)', 1.5);
 
   useFrame((_state, delta) => {
-    if (!idle) {
+    if (idleTime < AUTOMATIC_INPUT_IDLE_DELAY) {
       automaticInput.setOrientationVelocity(0, 0, 0);
 
       return;

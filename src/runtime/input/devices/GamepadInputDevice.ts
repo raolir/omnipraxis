@@ -27,23 +27,13 @@ export class GamepadInputDevice implements InputDevice {
 
   private activeGamepadIndex: number | null = null;
 
-  private appliedPositionVelocityX = 0;
-
-  private appliedPositionVelocityZ = 0;
-
-  private appliedOrientationVelocityX = 0;
-
-  private appliedOrientationVelocityY = 0;
-
-  private appliedRunContribution = 0;
-
   private interactPressed = false;
 
   private needsButtonBaseline = true;
 
   private onVisibilityChange = (): void => {
     if (document.visibilityState === 'hidden') {
-      this.clearContributions();
+      this.clearInput();
       this.needsButtonBaseline = true;
     }
   };
@@ -61,7 +51,7 @@ export class GamepadInputDevice implements InputDevice {
     }
 
     if (document.visibilityState === 'hidden' || !document.hasFocus()) {
-      this.clearContributions();
+      this.clearInput();
       this.needsButtonBaseline = true;
 
       return;
@@ -88,9 +78,9 @@ export class GamepadInputDevice implements InputDevice {
       gamepad.axes[RIGHT_STICK_Y_AXIS] ?? 0,
     );
 
-    this.applyPositionVelocity(moveX, moveZ);
-    this.applyOrientationVelocity(-lookY, -lookX);
-    this.applyRun(gamepad.buttons[RUN_BUTTON_INDEX]?.pressed ?? false);
+    this.store.setPositionVelocity(moveX, 0, moveZ);
+    this.store.setOrientationVelocity(-lookY, -lookX, 0);
+    this.store.setRun(gamepad.buttons[RUN_BUTTON_INDEX]?.pressed ?? false);
     this.applyInteraction(gamepad.buttons[INTERACT_BUTTON_INDEX]?.pressed ?? false);
   }
 
@@ -98,7 +88,7 @@ export class GamepadInputDevice implements InputDevice {
     window.removeEventListener('blur', this.onBlur);
     document.removeEventListener('visibilitychange', this.onVisibilityChange);
 
-    this.clearContributions();
+    this.clearInput();
     this.activeGamepadIndex = null;
     this.store = null;
   }
@@ -111,7 +101,7 @@ export class GamepadInputDevice implements InputDevice {
       return activeGamepad;
     }
 
-    this.clearContributions();
+    this.clearInput();
     this.activeGamepadIndex = null;
 
     for (const gamepad of gamepads) {
@@ -124,33 +114,6 @@ export class GamepadInputDevice implements InputDevice {
     }
 
     return null;
-  }
-
-  private applyPositionVelocity(x: number, z: number): void {
-    this.store?.addPositionVelocity(
-      x - this.appliedPositionVelocityX,
-      0,
-      z - this.appliedPositionVelocityZ,
-    );
-    this.appliedPositionVelocityX = x;
-    this.appliedPositionVelocityZ = z;
-  }
-
-  private applyOrientationVelocity(x: number, y: number): void {
-    this.store?.addOrientationVelocity(
-      x - this.appliedOrientationVelocityX,
-      y - this.appliedOrientationVelocityY,
-      0,
-    );
-    this.appliedOrientationVelocityX = x;
-    this.appliedOrientationVelocityY = y;
-  }
-
-  private applyRun(run: boolean): void {
-    const contribution = run ? 1 : 0;
-
-    this.store?.addRunContribution(contribution - this.appliedRunContribution);
-    this.appliedRunContribution = contribution;
   }
 
   private applyInteraction(pressed: boolean): void {
@@ -168,15 +131,15 @@ export class GamepadInputDevice implements InputDevice {
     this.interactPressed = pressed;
   }
 
-  private clearContributions(): void {
-    this.applyPositionVelocity(0, 0);
-    this.applyOrientationVelocity(0, 0);
-    this.applyRun(false);
+  private clearInput(): void {
+    this.store?.setPositionVelocity(0, 0, 0);
+    this.store?.setOrientationVelocity(0, 0, 0);
+    this.store?.setRun(false);
     this.interactPressed = false;
   }
 
   private onBlur = (): void => {
-    this.clearContributions();
+    this.clearInput();
     this.needsButtonBaseline = true;
   };
 }

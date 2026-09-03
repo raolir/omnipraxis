@@ -6,12 +6,6 @@ export class KeyboardInputDevice implements InputDevice {
 
   private pressedKeys = new Set<string>();
 
-  private appliedVelocityX = 0;
-
-  private appliedVelocityZ = 0;
-
-  private appliedRunContribution = 0;
-
   private onKeyDown = (event: KeyboardEvent): void => {
     this.pressedKeys.add(event.code);
 
@@ -59,26 +53,13 @@ export class KeyboardInputDevice implements InputDevice {
 
     const run = this.pressedKeys.has('ShiftLeft') || this.pressedKeys.has('ShiftRight');
 
-    this.applyPositionVelocity(moveX, moveZ);
-    this.applyRun(run);
-  }
-
-  private applyPositionVelocity(x: number, z: number): void {
-    this.store.addPositionVelocity(x - this.appliedVelocityX, 0, z - this.appliedVelocityZ);
-    this.appliedVelocityX = x;
-    this.appliedVelocityZ = z;
-  }
-
-  private applyRun(run: boolean): void {
-    const contribution = run ? 1 : 0;
-
-    this.store.addRunContribution(contribution - this.appliedRunContribution);
-    this.appliedRunContribution = contribution;
+    this.store.setPositionVelocity(moveX, 0, moveZ);
+    this.store.setRun(run);
   }
 
   private clearInput = (): void => {
     this.pressedKeys.clear();
-    this.applyPositionVelocity(0, 0);
-    this.applyRun(false);
+    this.store.setPositionVelocity(0, 0, 0);
+    this.store.setRun(false);
   };
 }

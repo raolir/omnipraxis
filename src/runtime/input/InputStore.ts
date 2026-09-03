@@ -45,13 +45,9 @@ export class InputStore implements InputSource {
     velocity: createVector3(),
   };
 
+  run = false;
+
   interact = false;
-
-  private runContributions = 0;
-
-  get run(): boolean {
-    return this.runContributions > 0;
-  }
 
   resolve(): void {}
 
@@ -59,12 +55,6 @@ export class InputStore implements InputSource {
     this.position.delta.x += x;
     this.position.delta.y += y;
     this.position.delta.z += z;
-  }
-
-  addPositionVelocity(x: number, y: number, z: number): void {
-    this.position.velocity.x += x;
-    this.position.velocity.y += y;
-    this.position.velocity.z += z;
   }
 
   setPositionVelocity(x: number, y: number, z: number): void {
@@ -79,24 +69,14 @@ export class InputStore implements InputSource {
     this.orientation.delta.z += z;
   }
 
-  addOrientationVelocity(x: number, y: number, z: number): void {
-    this.orientation.velocity.x += x;
-    this.orientation.velocity.y += y;
-    this.orientation.velocity.z += z;
-  }
-
   setOrientationVelocity(x: number, y: number, z: number): void {
     this.orientation.velocity.x = x;
     this.orientation.velocity.y = y;
     this.orientation.velocity.z = z;
   }
 
-  addRunContribution(contribution: number): void {
-    this.runContributions += contribution;
-  }
-
   setRun(run: boolean): void {
-    this.runContributions = run ? 1 : 0;
+    this.run = run;
   }
 
   triggerInteract(): void {
@@ -120,7 +100,7 @@ export class InputStore implements InputSource {
     resetVector3(this.position.velocity);
     resetVector3(this.orientation.delta);
     resetVector3(this.orientation.velocity);
-    this.runContributions = 0;
+    this.run = false;
     this.interact = false;
   }
 }

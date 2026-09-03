@@ -91,7 +91,7 @@ flowchart LR
 
   PlayerAPI --> Spawn[spawn]
   PlayerAPI --> HeldItem[setHeldItem]
-  PlayerAPI --> Idle[read idle]
+  PlayerAPI --> IdleTime[read idle time]
   PlayerAPI --> Orientation[read orientation snapshot]
 
   AutomaticInputAPI --> AutomaticInput[scene-owned semantic input]
@@ -164,7 +164,7 @@ A scene specification provides authored content and scene-specific logic.
 - Labeled `PlayerInteraction` objects passed into platform components.
 - Effect parameters for particles, splat edits, lights, and other scene-owned effects.
 - Calls into `usePlayer` for player spawning and held-item state.
-- Reads player idle state and orientation snapshots when scene-local behavior needs them.
+- Reads player idle time and orientation snapshots when scene-local behavior needs them.
 - Registers scene-local automatic input sources through `useAutomaticInput`.
 - Calls into `useUI` for screen feedback when scene-local logic needs it.
 
@@ -263,7 +263,7 @@ flowchart LR
 
 ## Input And Player Boundary
 
-Input devices write to independent semantic states. Composite sources resolve the user-device states into `userInput`, scene-owned automatic states into `automaticInput`, and those two aggregates into the final player input. Player systems consume the final aggregate, while idle detection reads the cached user aggregate. Scenes interact with the player and automatic-input registration through narrow APIs.
+Input devices write to independent semantic states. Composite sources resolve the user-device states into `userInput`, scene-owned automatic states into `automaticInput`, and those two aggregates into the final player input. Player systems consume the final aggregate, while idle-time tracking reads the cached user aggregate. Scenes interact with the player and automatic-input registration through narrow APIs.
 
 ```mermaid
 flowchart TD
@@ -291,7 +291,7 @@ flowchart TD
 
 Input states remain device-agnostic. Position and orientation each expose delta and velocity modalities. Deltas are resolved spatial displacements consumed once, while velocities are persistent controls integrated by the owning runtime. The current non-XR player consumes position and pitch/yaw orientation input during fixed physics steps; vertical position velocity and roll orientation input remain unused by the current yaw/pitch player hierarchy.
 
-Composite inputs add deltas and velocities and combine run and interaction state. `InputRuntime` resolves the complete composite once after polling devices, so the cached user aggregate supports idle detection without another device traversal. The player normalizes combined horizontal velocity when its magnitude exceeds one. Position velocity is scaled by walk or run speed and the fixed physics timestep. Orientation velocity is scaled by turn speed and the same fixed timestep, while orientation deltas have already been resolved by their source and are not speed-scaled. Pending deltas are applied and cleared by the first eligible physics step; velocities and held run state persist until their sources change or reset.
+Composite inputs add deltas and velocities and combine run and interaction state. `InputRuntime` resolves the complete composite once after polling devices, so the cached user aggregate supports idle-time tracking without another device traversal. The player normalizes combined horizontal velocity when its magnitude exceeds one. Position velocity is scaled by walk or run speed and the fixed physics timestep. Orientation velocity is scaled by turn speed and the same fixed timestep, while orientation deltas have already been resolved by their source and are not speed-scaled. Pending deltas are applied and cleared by the first eligible physics step; velocities and held run state persist until their sources change or reset.
 
 Keyboard WASD provides position velocity, either Shift key contributes held run state, and non-repeated `KeyE` requests interaction. Mouse movement and unclaimed touch drags provide orientation deltas, while touch movement uses a transient lower-left floating joystick. Touch interaction is performed through the player-owned overlay button rendered by `UIRuntime`, not by `TouchInputDevice`.
 
@@ -306,11 +306,11 @@ Keyboard WASD provides position velocity, either Shift key contributes held run 
 ```ts
 spawn(position, yaw?, pitch?)
 setHeldItem(heldItem)
-idle
+idleTime
 getOrientation()
 ```
 
-`idle` becomes true after five seconds without resolved user input after spawning. Automatic input does not affect it. `getOrientation()` returns the current yaw and pitch without publishing per-frame React state.
+`idleTime` reports seconds since the last resolved user input after spawning and resets to zero while user input is active. Scenes own any duration threshold for idle behavior. Automatic input does not reset it. `getOrientation()` returns the current yaw and pitch without publishing per-frame React state.
 
 ### `useAutomaticInput`
 

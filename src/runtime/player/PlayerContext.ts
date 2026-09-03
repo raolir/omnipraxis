@@ -16,7 +16,7 @@ export type PlayerInteraction = {
 
 export type PlayerRuntimeContextValue = {
   spawn: (position: PlayerPosition, yaw?: number, pitch?: number) => void;
-  idle: boolean;
+  idleTime: number;
   getOrientation: () => PlayerOrientation;
   interactionTargetId: string | null;
   setInteractionTarget: (id: string, interaction: PlayerInteraction) => void;

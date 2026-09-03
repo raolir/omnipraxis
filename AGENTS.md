@@ -32,7 +32,7 @@
 - `GltfModel` interactions are `PlayerInteraction` objects with mandatory `{ label, action }`; select the whole interaction object for each scene state instead of branching inside one action when labels/actions differ.
 - Spark internals (`@sparkjsdev/spark`, `SplatMesh`) are isolated under `src/runtime/spark/`; scenes should use `SplatModel` instead of importing Spark directly.
 - `SplatModel` reports initialized after its mounted `SplatMesh.initialized` promise resolves.
-- Player code lives under `src/runtime/player/`; scenes call `usePlayer().spawn(position, yaw?, pitch?)`, read `idle`, and can sample orientation through `getOrientation()`. `PlayerRuntime` keeps the single `PlayerController` disabled until spawn is applied.
+- Player code lives under `src/runtime/player/`; scenes call `usePlayer().spawn(position, yaw?, pitch?)`, read `idleTime`, and can sample orientation through `getOrientation()`. `PlayerRuntime` keeps the single `PlayerController` disabled until spawn is applied.
 - `PlayerRuntime` owns centered interaction targeting, latched interaction consumption, held items, and registering the current interaction as a generic UI overlay button; it should not render DOM UI directly.
 - `UIRuntime` owns the separate DOM overlay root, reticle, screen tint/message feedback, and generic keyed overlay buttons (`setOverlayButton(id, button | null)`) with UI-owned placement/styling.
 - DOM UI inside the R3F tree must not return raw `<div>` elements; UI overlays create separate React DOM roots and return `null` to R3F to avoid `Div is not part of the THREE namespace` errors.

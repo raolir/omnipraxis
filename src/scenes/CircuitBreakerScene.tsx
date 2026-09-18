@@ -2,6 +2,7 @@ import { useFrame } from '@react-three/fiber';
 import { useEffect, useRef, useState } from 'react';
 import * as THREE from 'three';
 
+import { Model as AvatarRodrigo } from '../../Avatar-rodrigo';
 import { GltfModel } from '../runtime/assets/GltfModel';
 import { useAutomaticInput } from '../runtime/input/useAutomaticInput';
 import { usePlayer } from '../runtime/player/PlayerContext';
@@ -60,6 +61,7 @@ export const CircuitBreakerScene = () => {
   const { spawn, setHeldItem, idleTime, getOrientation } = usePlayer();
   const automaticInput = useAutomaticInput();
   const { showScreenFeedback } = useUI();
+
   const [repairStatus, setRepairStatus] = useState<RepairStatus>('start');
   const automaticPitchPhaseRef = useRef(0);
 
@@ -129,6 +131,13 @@ export const CircuitBreakerScene = () => {
       <GltfModel url={SCENE_COLLIDERS_URL} visible={false} physicality="fixed" />
       <ParticleEmitter {...burntBreakerSmokeProps} emitting={repairStatus === 'overloaded'} />
       {repairStatus === 'overloaded' ? <ParticleEmitter {...burntBreakerFlameProps} /> : null}
+      
+      <AvatarRodrigo 
+          position={[-10.0, 0.0, 3.5]}
+          rotation={[0, Math.PI / 2, 0]}
+          scale={1} 
+      />
+      
       <GltfModel
         url={BOX_URL}
         position={[-3.5, 1.87, -0.55]}

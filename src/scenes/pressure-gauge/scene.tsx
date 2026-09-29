@@ -7,6 +7,8 @@ import { advanceDisplayedPressure, PRESSURE_VALUES } from './pressure';
 import { ReplacementGauge } from './ReplacementGauge';
 import { canOperateValve, INITIAL_SIMULATION_STATE, transitionSimulation } from './simulation';
 import { recordTrainingStart, recordTrainingTransition } from './trainingEvents';
+import { useConvaiTriggers } from './useConvaiTriggers';
+import { Model as AvatarRodrigo } from '../../avatar/Avatar-rodrigo';
 import { GltfModel } from '../../runtime/assets/GltfModel';
 import { useEventLog } from '../../runtime/events/EventLogContext';
 import { useAutomaticInput } from '../../runtime/input/useAutomaticInput';
@@ -47,6 +49,9 @@ export const PressureGaugeScene = () => {
   const automaticInput = useAutomaticInput();
   const automaticPitchPhaseRef = useRef(0);
   const [simulation, setSimulation] = useState(INITIAL_SIMULATION_STATE);
+  
+  useConvaiTriggers(simulation);
+  
   const simulationRef = useRef(INITIAL_SIMULATION_STATE);
   const { stage, valves, pressureState, activeValve } = simulation;
   const montanteRef = useRef<GltfModelHandle>(null);
@@ -177,6 +182,13 @@ export const PressureGaugeScene = () => {
       <directionalLight position={[10, 5, 5]} />
       <SplatModel url={SCENE_SPLATS_URL} paged onInitialized={() => spawn(PLAYER_SPAWN_POSITION)} />
       <GltfModel url={SCENE_COLLIDERS_URL} visible={false} physicality="fixed" />
+
+      <AvatarRodrigo 
+            position={[-2.0, 0.0, -0.4]} 
+            rotation={[0, Math.PI / 3, 0]}
+            scale={1} 
+        />
+
       <group
         name="pressure-gauge-assembly"
         position={[4.8, 0.02, 2.6]}
